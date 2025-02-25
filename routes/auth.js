@@ -21,7 +21,7 @@ router.post('/register', async (req, res) => {
     const newUser = new User({ username, email, password });
     await newUser.save();
 
-    // ✅ Générer un token SANS expiration pour tester (mettre "7d" après test)
+    // ✅ Générer un token
     const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     console.log("✅ Token généré à l'inscription :", token);
