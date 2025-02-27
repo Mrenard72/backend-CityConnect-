@@ -36,25 +36,25 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Vérifier si l'utilisateur existe
     const user = await User.findOne({ email });
+
     if (!user) return res.status(400).json({ message: 'Email ou mot de passe incorrect' });
 
-    // Vérifier le mot de passe
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Email ou mot de passe incorrect' });
 
     // ✅ Générer un token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    console.log("✅ Token généré à la connexion :", token);
+    console.log("✅ Token généré à la connexion :", token); // ✅ Debugging
+
     res.json({ token, userId: user._id });
   } catch (error) {
     console.error("❌ Erreur lors de la connexion :", error);
     res.status(500).json({ message: 'Erreur serveur', error });
   }
 });
+
 
 // Middleware d'authentification
 const authMiddleware = (req, res, next) => {
