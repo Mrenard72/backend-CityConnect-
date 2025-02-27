@@ -5,24 +5,31 @@ const authMiddleware = require('../middleware/auth'); // 🔒 Middleware d'authe
 
 // ✅ 1. Créer une sortie (authentification requise)
 router.post('/', authMiddleware, async (req, res) => {
-  try {
-    const { title, description, location, date, category } = req.body;
-
-    const newEvent = new Event({
-      title,
-      description,
-      location,
-      date,
-      category,
-      createdBy: req.user._id, // 👤 L'utilisateur connecté est l'organisateur
-    });
-
-    await newEvent.save();
-    res.status(201).json({ message: 'Sortie créée avec succès !', event: newEvent });
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la création de la sortie', error });
-  }
-});
+    try {
+      console.log("🔍 Utilisateur connecté :", req.user); // ✅ Vérifie si req.user est rempli
+  
+      if (!req.user || !req.user._id) {
+        return res.status(401).json({ message: "Utilisateur non authentifié." });
+      }
+  
+      const { title, description, location, date, category } = req.body;
+  
+      const newEvent = new Event({
+        title,
+        description,
+        location,
+        date,
+        category,
+        createdBy: req.user._id, // 👤 L'utilisateur connecté est l'organisateur
+      });
+  
+      await newEvent.save();
+      res.status(201).json({ message: 'Sortie créée avec succès !', event: newEvent });
+  
+    } catch (error) {
+      res.status(500).json({ message: 'Erreur lors de la création de la sortie', error });
+    }
+  });
 
 // ✅ 2. Récupérer toutes les sorties
 router.get('/', async (req, res) => {
