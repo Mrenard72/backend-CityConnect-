@@ -378,7 +378,7 @@ mongodb-connection-string-url@^3.0.0:
     "@types/whatwg-url" "^11.0.2"
     whatwg-url "^14.1.0 || ^13.0.0"
 
-mongodb@~6.13.0:
+mongodb@^6.13.1, mongodb@~6.13.0:
   version "6.13.1"
   resolved "https://registry.yarnpkg.com/mongodb/-/mongodb-6.13.1.tgz#924319f957a22efda45a96d38c08a594fd7929fa"
   integrity sha512-gdq40tX8StmhP6akMp1pPoEVv+9jTYFSrga/g23JxajPAQhH39ysZrHGzQCSd9PEOnuEQEdjIWqxO7ZSwC0w7Q==
@@ -387,7 +387,7 @@ mongodb@~6.13.0:
     bson "^6.10.3"
     mongodb-connection-string-url "^3.0.0"
 
-mongoose@^8.10.1:
+mongoose@^8.11.0:
   version "8.11.0"
   resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-8.11.0.tgz#11e7f604f1febc4c11f56ec240dc740352aace7e"
   integrity sha512-xaQSuaLk2JKmXI5zDVVWXVCQTnWhAe8MFOijMnwOuP/wucKVphd3f+ouDKivCDMGjYBDrR7dtoyV0U093xbKqA==
