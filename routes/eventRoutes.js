@@ -3,122 +3,149 @@ const router = express.Router();
 const Event = require('../models/Event'); // 📌 Import du modèle
 const authMiddleware = require('../middleware/auth'); // 🔒 Middleware d'authentification
 
-// ✅ 1. Créer une sortie (authentification requise)
+// ✅ 1. Créer un événement (authentification requise)
 router.post('/', authMiddleware, async (req, res) => {
     try {
-      console.log("🔍 Utilisateur connecté :", req.user); // ✅ Vérifie si req.user est rempli
-  
-      if (!req.user || !req.user._id) {
-        return res.status(401).json({ message: "Utilisateur non authentifié." });
-      }
-  
-      const { title, description, location, date, category } = req.body;
-  
-      const newEvent = new Event({
-        title,
-        description,
-        location,
-        date,
-        category,
-        createdBy: req.user._id, // 👤 L'utilisateur connecté est l'organisateur
-      });
-  
-      await newEvent.save();
-      res.status(201).json({ message: 'Sortie créée avec succès !', event: newEvent });
-  
+        console.log("🔍 Utilisateur connecté :", req.user);
+
+        if (!req.user || !req.user._id) {
+            return res.status(401).json({ message: "Utilisateur non authentifié." });
+        }
+
+        const { title, description, location, date, category, maxParticipants, photos } = req.body;
+
+        // ✅ Vérifier si tous les champs requis sont fournis
+        if (!title || !description || !location || !date || !category || !maxParticipants) {
+            return res.status(400).json({ message: "Tous les champs obligatoires doivent être remplis." });
+        }
+
+        const newEvent = new Event({
+            title,
+            description,
+            location,
+            date,
+            category,
+            createdBy: req.user._id,
+            maxParticipants,
+            photos: photos || [] // Ajoute des photos si fournies, sinon tableau vide
+        });
+
+        await newEvent.save();
+        res.status(201).json({ message: 'Événement créé avec succès !', event: newEvent });
+
     } catch (error) {
-      res.status(500).json({ message: 'Erreur lors de la création de la sortie', error });
+        console.error("❌ Erreur lors de la création de l'événement :", error);
+        res.status(500).json({ message: 'Erreur lors de la création de l’événement', error });
     }
-  });
+});
 
-// ✅ 2. Récupérer toutes les sorties
+// ✅ 2. Récupérer tous les événements
 router.get('/', async (req, res) => {
-  try {
-    const events = await Event.find().populate('createdBy', 'username'); // 🔍 Ajoute le nom de l'organisateur
-    res.json(events);
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la récupération des sorties', error });
-  }
+    try {
+        const events = await Event.find().populate('createdBy', 'username');
+        res.json(events);
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des événements :", error);
+        res.status(500).json({ message: 'Erreur lors de la récupération des événements', error });
+    }
 });
 
-// ✅ 3. Récupérer une sortie par ID
+// ✅ 3. Récupérer un événement par ID
 router.get('/:id', async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id).populate('createdBy', 'username');
-    if (!event) return res.status(404).json({ message: 'Sortie non trouvée' });
+    try {
+        const event = await Event.findById(req.params.id).populate('createdBy', 'username');
+        if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
 
-    res.json(event);
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la récupération de la sortie', error });
-  }
+        res.json(event);
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération de l’événement :", error);
+        res.status(500).json({ message: 'Erreur lors de la récupération de l’événement', error });
+    }
 });
 
-// ✅ 4. Mettre à jour une sortie (authentification requise, seul le créateur peut modifier)
+// ✅ 4. Mettre à jour un événement (authentification requise, seul le créateur peut modifier)
 router.put('/:id', authMiddleware, async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ message: 'Sortie non trouvée' });
+    try {
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
 
-    if (event.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Non autorisé à modifier cette sortie' });
+        if (event.createdBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Non autorisé à modifier cet événement' });
+        }
+
+        Object.assign(event, req.body);
+        await event.save();
+
+        res.json({ message: 'Événement mis à jour avec succès', event });
+    } catch (error) {
+        console.error("❌ Erreur lors de la mise à jour :", error);
+        res.status(500).json({ message: 'Erreur lors de la mise à jour', error });
     }
-
-    Object.assign(event, req.body); // 🔄 Met à jour les champs avec les nouvelles valeurs
-    await event.save();
-
-    res.json({ message: 'Sortie mise à jour avec succès', event });
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la mise à jour', error });
-  }
 });
 
-// ✅ 5. Supprimer une sortie (authentification requise, seul le créateur peut supprimer)
+// ✅ 5. Supprimer un événement (authentification requise, seul le créateur peut supprimer)
 router.delete('/:id', authMiddleware, async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ message: 'Sortie non trouvée' });
+    try {
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
 
-    if (event.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Non autorisé à supprimer cette sortie' });
+        if (event.createdBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Non autorisé à supprimer cet événement' });
+        }
+
+        await event.deleteOne();
+        res.json({ message: 'Événement supprimé avec succès' });
+    } catch (error) {
+        console.error("❌ Erreur lors de la suppression :", error);
+        res.status(500).json({ message: 'Erreur lors de la suppression', error });
     }
-
-    await event.deleteOne();
-    res.json({ message: 'Sortie supprimée avec succès' });
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la suppression', error });
-  }
 });
 
-// ✅ 6. Participer à une sortie
+// ✅ 6. Participer à un événement
 router.post('/:id/join', authMiddleware, async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ message: 'Sortie non trouvée' });
+    try {
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
 
-    if (!event.participants.includes(req.user._id)) {
-      event.participants.push(req.user._id);
-      await event.save();
+        // Vérifier si l'événement est complet
+        if (event.participants.length >= event.maxParticipants) {
+            return res.status(400).json({ message: "L'événement est complet." });
+        }
+
+        // Vérifier si l'utilisateur est déjà inscrit
+        if (event.participants.includes(req.user._id)) {
+            return res.status(400).json({ message: "Vous êtes déjà inscrit à cet événement." });
+        }
+
+        event.participants.push(req.user._id);
+        await event.save();
+
+        res.json({ message: 'Inscription réussie à l’événement', event });
+    } catch (error) {
+        console.error("❌ Erreur lors de l'inscription :", error);
+        res.status(500).json({ message: 'Erreur lors de l’inscription', error });
     }
-
-    res.json({ message: 'Inscription réussie à la sortie', event });
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de l\'inscription', error });
-  }
 });
 
-// ✅ 7. Quitter une sortie
+// ✅ 7. Quitter un événement
 router.post('/:id/leave', authMiddleware, async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ message: 'Sortie non trouvée' });
+    try {
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
 
-    event.participants = event.participants.filter(id => id.toString() !== req.user._id.toString());
-    await event.save();
+        // Vérifier si l'utilisateur est inscrit avant de le retirer
+        if (!event.participants.includes(req.user._id)) {
+            return res.status(400).json({ message: "Vous n'êtes pas inscrit à cet événement." });
+        }
 
-    res.json({ message: 'Désinscription réussie', event });
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la désinscription', error });
-  }
+        event.participants = event.participants.filter(id => id.toString() !== req.user._id.toString());
+        await event.save();
+
+        res.json({ message: 'Désinscription réussie', event });
+    } catch (error) {
+        console.error("❌ Erreur lors de la désinscription :", error);
+        res.status(500).json({ message: 'Erreur lors de la désinscription', error });
+    }
 });
 
 module.exports = router;

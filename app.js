@@ -19,18 +19,17 @@ mongoose.connect(process.env.MONGO_URI, {
   .catch(err => console.error('❌ Erreur de connexion MongoDB:', err));
 
 // Importation des routes
-const usersRouter = require('./routes/users');
 const authRoutes = require('./routes/auth');
 const eventsRouter = require('./routes/eventRoutes');
+const conversationsRouter = require('./routes/conversationsroutes');
 
-app.use('/users', usersRouter); // Routes utilisateurs
 app.use('/auth', authRoutes); // Routes d'authentification
 app.use('/events', eventsRouter); // Routes sorties
+app.use('/conversations', conversationsRouter); // Routes messagerie
 
-// Route test principale
-app.get('/', (req, res) => {
-  res.send('API City Connect fonctionne 🚀');
-});
 
 // Exportation de `app`
 module.exports = app;
+
+
+
