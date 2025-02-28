@@ -9,7 +9,7 @@ const UserSchema = new mongoose.Schema({
   photo: { type: String, default: "https://cdn.example.com/default-avatar.png" }, // Photo de profil
   
   reservedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }], // Activités réservées
-  proposedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }], // Activités créées
+  proposedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }], // Activités créées ok
   
   reviewsReceived: [{
     reviewerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Qui a noté ?
