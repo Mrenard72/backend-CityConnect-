@@ -13,7 +13,7 @@ router.post('/create', authMiddleware, async (req, res) => {
 
     if (!recipientId) return res.status(400).json({ message: "Destinataire manquant" });
 
-    // Vérifier si une conversation existe déjà
+    // Vérifier si une conversation existe déjà !
     let conversation = await Conversation.findOne({
       participants: { $all: [userId, recipientId] }
     });
