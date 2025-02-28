@@ -26,6 +26,9 @@ const conversationsRouter = require('./routes/conversationsroutes');
 app.use('/auth', authRoutes); // Routes d'authentification
 app.use('/events', eventsRouter); // Routes sorties
 app.use('/conversations', conversationsRouter); // Routes messagerie
+app.get('/', (req, res) => {
+  res.send('🚀 API CityConnect fonctionne !');
+});
 
 
 // Exportation de `app`
