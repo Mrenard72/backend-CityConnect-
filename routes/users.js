@@ -20,7 +20,7 @@ const upload = multer({ storage });
 
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
-      const user = await User.findById(req.user._id).select('username email profilePicture');
+      const user = await User.findById(req.user._id).select('username email photo');
       if (!user) {
           return res.status(404).json({ message: 'Utilisateur non trouvé' });
       }
@@ -28,7 +28,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
       res.json({
           username: user.username,
           email: user.email,
-          profilePicture: user.profilePicture // ✅ Ajout de la photo de profil
+          photo: user.photo // ✅ Ajout de la photo de profil
       });
 
   } catch (error) {
@@ -81,7 +81,7 @@ router.post('/upload-profile-pic', authMiddleware, upload.single('profilePic'), 
             user.profilePicture = result.secure_url;
             await user.save();
 
-            res.json({ profilePicture: result.secure_url });
+            res.json({ photo: result.secure_url });
         }).end(req.file.buffer);
 
     } catch (err) {

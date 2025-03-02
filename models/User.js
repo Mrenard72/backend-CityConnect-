@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   token: { type: String }, // Stocke temporairement le token d’authentification
-  profilePicture: { type: String, default: "https://cdn.example.com/default-avatar.png" }, // Photo de profil
+  photo: { type: String, default: "https://cdn.example.com/default-avatar.png" }, // Photo de profil
   
   reservedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }], // Activités réservées
   proposedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }], // Activités créées ok
