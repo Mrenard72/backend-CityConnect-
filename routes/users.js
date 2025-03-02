@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const authMiddleware = require('../middleware/auth');
 
@@ -14,9 +13,6 @@ cloudinary.config({
     api_secret: CLOUDINARY_API_SECRET
 });
 
-// Configuration Multer pour l'upload
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
 
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
@@ -34,6 +30,30 @@ router.get('/profile', authMiddleware, async (req, res) => {
   } catch (error) {
       console.error("❌ Erreur lors de la récupération du profil :", error);
       res.status(500).json({ message: 'Erreur serveur', error });
+  }
+});
+
+router.post('/upload-profile-pic', authMiddleware, async (req, res) => {
+  try {
+      const { photoUrl } = req.body; // On récupère l'URL envoyée par le frontend
+
+      if (!photoUrl) {
+          return res.status(400).json({ message: 'Aucune URL fournie' });
+      }
+
+      // Trouver l'utilisateur
+      const user = await User.findById(req.user._id);
+      if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+
+      // Mettre à jour la photo de profil
+      user.photo = photoUrl;
+      await user.save();
+
+      res.json({ message: 'Photo mise à jour avec succès', photo: user.photo });
+
+  } catch (err) {
+      console.log("❌ Erreur serveur :", err);
+      res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
@@ -55,45 +75,6 @@ router.put('/profile', authMiddleware, async (req, res) => {
         console.error("❌ Erreur lors de la mise à jour du profil :", error);
         res.status(500).json({ message: 'Erreur serveur', error });
     }
-});
-
-router.post('/upload-profile-pic', authMiddleware, upload.single('profilePic'), async (req, res) => {
-  try {
-      console.log("📸 Fichier reçu :", req.file);
-
-      if (!req.file) {
-          console.log("❌ Aucune image reçue !");
-          return res.status(400).json({ message: 'Aucun fichier fourni' });
-      }
-
-      // ✅ Convertir le fichier reçu en base64 pour Cloudinary
-      const uploadedImage = await cloudinary.uploader.upload_stream(
-          { folder: 'profile_pictures' },
-          async (error, result) => {
-              if (error) {
-                  console.log("❌ Erreur Cloudinary :", error);
-                  return res.status(500).json({ message: "Échec de l'upload sur Cloudinary", error });
-              }
-
-              console.log("✅ Image uploadée sur Cloudinary :", result.secure_url);
-
-              // ✅ Mettre à jour la photo dans MongoDB
-              const user = await User.findById(req.user._id);
-              if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
-
-              user.photo = result.secure_url;
-              await user.save();
-
-              res.json({ photo: result.secure_url });
-          }
-      );
-
-      uploadedImage.end(req.file.buffer);
-
-  } catch (err) {
-      console.error("❌ Erreur serveur :", err);
-      res.status(500).json({ message: 'Erreur serveur' });
-  }
 });
 
 
