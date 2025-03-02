@@ -85,7 +85,7 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// ✅ Route pour récupérer le profil utilisateur
+// ✅ Route pour récupérer le profil utilisateur !!
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');

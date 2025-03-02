@@ -29,6 +29,9 @@ app.use('/events', eventsRouter); // Routes sorties
 app.use('/conversations', conversationsRouter); // Routes messagerie
 app.use('/users', userRouter);
 
+app.get('/', (req, res) => {
+  res.send('🚀 API CityConnect fonctionne !');
+});
 
 
 // Exportation de `app`
