@@ -28,7 +28,8 @@ router.post('/register', async (req, res) => {
     if (existingUser) return res.status(400).json({ message: 'Email déjà utilisé' });
 
     // ✅ Créer un nouvel utilisateur
-    const newUser = new User({ username, email, password, photo });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ username, email, password: hashedPassword, photo });
     await newUser.save();
 
     // ✅ Générer un token
