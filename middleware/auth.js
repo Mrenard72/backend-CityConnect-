@@ -9,7 +9,7 @@ const authMiddleware = async (req, res, next) => {
     console.log("❌ Token manquant ou mal formaté.");
     return res.status(401).json({ message: "Token invalide ou manquant." });
   }
-
+ 
   const token = authHeader.split(' ')[1];
 
   try {
