@@ -12,6 +12,11 @@ cloudinary.config({
     api_key: CLOUDINARY_API_KEY,
     api_secret: CLOUDINARY_API_SECRET
 });
+console.log("🚀 Cloudinary Config :", {
+  cloud_name: CLOUDINARY_CLOUD_NAME,
+  api_key: CLOUDINARY_API_KEY,
+  api_secret: CLOUDINARY_API_SECRET ? 'OK' : 'NON CHARGÉ'
+});
 
 
 router.get('/profile', authMiddleware, async (req, res) => {
