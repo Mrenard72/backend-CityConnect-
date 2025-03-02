@@ -6,7 +6,7 @@ const authMiddleware = require('../middleware/auth');
 
 const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
 
-// Configurer Cloudinary
+// Configurer Cloudinary !
 cloudinary.config({
     cloud_name: CLOUDINARY_CLOUD_NAME,
     api_key: CLOUDINARY_API_KEY,
