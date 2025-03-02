@@ -58,37 +58,44 @@ router.put('/profile', authMiddleware, async (req, res) => {
 });
 
 router.post('/upload-profile-pic', authMiddleware, upload.single('profilePic'), async (req, res) => {
-    try {
-      console.log("📸 Fichier reçu :", req.file); 
+  try {
+      console.log("📸 Fichier reçu :", req.file);
 
+      if (!req.file) {
+          console.log("❌ Aucune image reçue !");
+          return res.status(400).json({ message: 'Aucun fichier fourni' });
+      }
 
-        if (!req.file) {
-            console.log("❌ Aucune image reçue !");
-            return res.status(400).json({ message: 'Aucun fichier fourni' });
-        }
+      // ✅ Convertir le fichier reçu en base64 pour Cloudinary
+      const uploadedImage = await cloudinary.uploader.upload_stream(
+          { folder: 'profile_pictures' },
+          async (error, result) => {
+              if (error) {
+                  console.log("❌ Erreur Cloudinary :", error);
+                  return res.status(500).json({ message: "Échec de l'upload sur Cloudinary", error });
+              }
 
-        cloudinary.uploader.upload_stream({ folder: 'profile_pictures' }, async (error, result) => {
-            if (error) {
-                console.log("❌ Erreur Cloudinary :", error);
-                return res.status(500).json({ message: 'Échec de l\'upload' });
-            }
+              console.log("✅ Image uploadée sur Cloudinary :", result.secure_url);
 
-            console.log("✅ Image uploadée sur Cloudinary :", result.secure_url);
+              // ✅ Mettre à jour la photo dans MongoDB
+              const user = await User.findById(req.user._id);
+              if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
-            const user = await User.findById(req.user._id);
-            if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+              user.photo = result.secure_url;
+              await user.save();
 
-            user.profilePicture = result.secure_url;
-            await user.save();
+              res.json({ photo: result.secure_url });
+          }
+      );
 
-            res.json({ photo: result.secure_url });
-        }).end(req.file.buffer);
+      uploadedImage.end(req.file.buffer);
 
-    } catch (err) {
-        console.log("❌ Erreur serveur :", err);
-        res.status(500).json({ message: 'Erreur serveur' });
-    }
+  } catch (err) {
+      console.error("❌ Erreur serveur :", err);
+      res.status(500).json({ message: 'Erreur serveur' });
+  }
 });
+
 
 module.exports = router;
 

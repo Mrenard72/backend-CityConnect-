@@ -3,6 +3,7 @@ const User = require('../models/User'); // ✅ Import du modèle User
 
 const authMiddleware = async (req, res, next) => {
   console.log("🔍 Header Authorization reçu :", req.headers.authorization); // ✅ Debugging
+  
 
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
