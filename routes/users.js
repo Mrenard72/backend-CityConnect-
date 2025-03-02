@@ -18,18 +18,25 @@ cloudinary.config({
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// ✅ Route pour récupérer le profil utilisateur
 router.get('/profile', authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id).select('-password');
-        if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+  try {
+      const user = await User.findById(req.user._id).select('username email profilePicture');
+      if (!user) {
+          return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
 
-        res.json(user);
-    } catch (error) {
-        console.error("❌ Erreur lors de la récupération du profil :", error);
-        res.status(500).json({ message: 'Erreur serveur', error });
-    }
+      res.json({
+          username: user.username,
+          email: user.email,
+          profilePicture: user.profilePicture // ✅ Ajout de la photo de profil
+      });
+
+  } catch (error) {
+      console.error("❌ Erreur lors de la récupération du profil :", error);
+      res.status(500).json({ message: 'Erreur serveur', error });
+  }
 });
+
 
 // ✅ Route pour mettre à jour son profil (nom, photo)
 router.put('/profile', authMiddleware, async (req, res) => {
