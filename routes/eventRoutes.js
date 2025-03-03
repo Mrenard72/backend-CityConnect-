@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event'); // 📌 Import du modèle
 const authMiddleware = require('../middleware/auth'); // 🔒 Middleware d'authentification
+const Conversation = require('../models/Conversation');
 
 // ✅ 1. Créer un événement (authentification requise)
 router.post('/', authMiddleware, async (req, res) => {
