@@ -1,5 +1,5 @@
 const express = require('express');
-const mongoose = require('mongoose'); // Ajouté pour cast userId
+const mongoose = require('mongoose'); // Nécessaire pour les cast éventuels
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
 const User = require('../models/User'); // Pour récupérer les infos du sender
@@ -33,7 +33,7 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
-// Envoyer un message (version modifiée sans .execPopulate())
+// Envoyer un message (version modifiée avec $slice pour récupérer le sender peuplé)
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.user;
@@ -54,9 +54,9 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Forcer le sender à être casté en ObjectId
+    // Création du message
     const newMsg = { 
-      sender: mongoose.Types.ObjectId(userId), 
+      sender: userId, // Stocké en tant qu'ObjectId grâce au schéma
       content, 
       timestamp: new Date() 
     };
@@ -65,17 +65,18 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
     await conversation.save();
     console.log("✅ Message enregistré avec succès !");
 
-    // Refait un findById avec populate pour obtenir les infos complètes du dernier message
-    const convPop = await Conversation.findById(conversationId)
-      .populate('messages.sender', 'username')
-      .lean();
-    
+    // Utiliser une projection avec $slice pour ne récupérer que le dernier message
+    const convPop = await Conversation.findOne(
+      { _id: conversationId },
+      { messages: { $slice: -1 } } // Récupère uniquement le dernier message
+    ).populate('messages.sender', 'username');
+
     if (!convPop || !convPop.messages || convPop.messages.length === 0) {
       console.log("❌ Aucune donnée trouvée après save");
       return res.status(404).json({ message: "Aucun message trouvé après enregistrement" });
     }
     
-    const addedMessage = convPop.messages[convPop.messages.length - 1];
+    const addedMessage = convPop.messages[0];
     console.log("🔎 Dernier message renvoyé :", addedMessage);
     res.json(addedMessage);
   } catch (error) {
