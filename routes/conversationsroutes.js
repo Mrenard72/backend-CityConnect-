@@ -1,15 +1,15 @@
 const express = require('express');
-const mongoose = require('mongoose'); // Pour les casts éventuels
+const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
-const User = require('../models/User'); // Pour récupérer les infos du sender
+const User = require('../models/User');
 
 const router = express.Router();
 
 // Créer une nouvelle conversation
 router.post('/create', authMiddleware, async (req, res) => {
   try {
-    // Utiliser req.user._id
+    // Utiliser req.user._id (et non req.user.userId)
     const userId = req.user._id;
     const { recipientId, eventId } = req.body;
 
@@ -34,52 +34,51 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
-// Envoyer un message (version modifiée sans $slice)
+// Envoyer un message (version finale)
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
-    // Utiliser req.user._id
+    // Récupérer l'identifiant de l'utilisateur via req.user._id
     const userId = req.user._id;
     const { conversationId } = req.params;
     const { content } = req.body;
 
-    console.log(`📩 Tentative d'envoi de message dans la conversation ${conversationId} par ${userId}`);
-    console.log("Données reçues :", req.body);
+    console.log(`📩 Envoi de message dans la conversation ${conversationId} par ${userId}`);
+    console.log("Contenu reçu :", content);
 
     if (!content) {
-      console.log("⚠️ Message vide !");
       return res.status(400).json({ message: "Message vide" });
     }
 
     // Récupérer la conversation
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
-      console.log("❌ Conversation introuvable !");
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Création du message et ajout à la conversation
+    // Créer le message avec le sender correctement défini
     const newMsg = { 
-      sender: userId, 
+      sender: userId, // On utilise req.user._id ici
       content, 
       timestamp: new Date() 
     };
-    conversation.messages.push(newMsg);
-    conversation.lastUpdated = Date.now();
-    await conversation.save();
-    console.log("✅ Message enregistré avec succès !");
 
-    // Recharger la conversation avec population (sans utiliser $slice)
+    conversation.messages.push(newMsg);
+    conversation.lastUpdated = new Date();
+    await conversation.save();
+    console.log("✅ Message enregistré dans la conversation.");
+    console.log("Document conversation après save :", conversation);
+
+    // Recharger la conversation pour peupler le champ sender
     const convPop = await Conversation.findById(conversationId)
       .populate('messages.sender', 'username');
+    console.log("Document conversation rechargé :", convPop);
     
-    if (!convPop || !convPop.messages || convPop.messages.length === 0) {
-      console.log("❌ Aucune donnée trouvée après save");
-      return res.status(404).json({ message: "Aucun message trouvé après enregistrement" });
-    }
-    
-    // Récupérer le dernier message
+    // Inspecter tous les messages pour vérifier que le sender est présent
+    console.log("Liste des messages :", convPop.messages);
+
     const addedMessage = convPop.messages[convPop.messages.length - 1];
     console.log("🔎 Dernier message renvoyé :", addedMessage);
+
     res.json(addedMessage);
   } catch (error) {
     console.error("❌ Erreur envoi message:", error.stack);
@@ -103,11 +102,7 @@ router.get('/my-conversations', authMiddleware, async (req, res) => {
     res.json(conversations);
   } catch (error) {
     console.error("Erreur récupération conversations:", error.stack);
-    res.status(500).json({ 
-      message: "Erreur serveur", 
-      error: error.message, 
-      stack: error.stack 
-    });
+    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
   }
 });
   
@@ -130,12 +125,8 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
     console.log("📩 Conversation trouvée :", conversation);
     res.json(conversation);
   } catch (error) {
-    console.error("❌ Erreur récupération conversation :", error.stack);
-    res.status(500).json({ 
-      message: "Erreur serveur", 
-      error: error.message, 
-      stack: error.stack 
-    });
+    console.error("❌ Erreur récupération conversation:", error.stack);
+    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
   }
 });
 
