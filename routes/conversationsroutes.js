@@ -1,5 +1,5 @@
 const express = require('express');
-const mongoose = require('mongoose'); // Pour cast si besoin
+const mongoose = require('mongoose'); // Pour les casts éventuels
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
 const User = require('../models/User'); // Pour récupérer les infos du sender
@@ -9,7 +9,7 @@ const router = express.Router();
 // Créer une nouvelle conversation
 router.post('/create', authMiddleware, async (req, res) => {
   try {
-    // Utiliser req.user._id au lieu de req.user.userId
+    // Utiliser req.user._id
     const userId = req.user._id;
     const { recipientId, eventId } = req.body;
 
@@ -34,10 +34,10 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
-// Envoyer un message (version modifiée avec $slice pour récupérer le sender peuplé)
+// Envoyer un message (version modifiée sans $slice)
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
-    // Récupérer l'id de l'utilisateur via _id
+    // Utiliser req.user._id
     const userId = req.user._id;
     const { conversationId } = req.params;
     const { content } = req.body;
@@ -50,13 +50,14 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Message vide" });
     }
 
+    // Récupérer la conversation
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       console.log("❌ Conversation introuvable !");
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Création du message (sender est maintenant correctement défini)
+    // Création du message et ajout à la conversation
     const newMsg = { 
       sender: userId, 
       content, 
@@ -67,18 +68,17 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
     await conversation.save();
     console.log("✅ Message enregistré avec succès !");
 
-    // Utiliser une projection avec $slice pour récupérer uniquement le dernier message et le peupler
-    const convPop = await Conversation.findOne(
-      { _id: conversationId },
-      { messages: { $slice: -1 } } // Récupère uniquement le dernier message
-    ).populate('messages.sender', 'username');
-
+    // Recharger la conversation avec population (sans utiliser $slice)
+    const convPop = await Conversation.findById(conversationId)
+      .populate('messages.sender', 'username');
+    
     if (!convPop || !convPop.messages || convPop.messages.length === 0) {
       console.log("❌ Aucune donnée trouvée après save");
       return res.status(404).json({ message: "Aucun message trouvé après enregistrement" });
     }
     
-    const addedMessage = convPop.messages[0];
+    // Récupérer le dernier message
+    const addedMessage = convPop.messages[convPop.messages.length - 1];
     console.log("🔎 Dernier message renvoyé :", addedMessage);
     res.json(addedMessage);
   } catch (error) {
@@ -103,7 +103,11 @@ router.get('/my-conversations', authMiddleware, async (req, res) => {
     res.json(conversations);
   } catch (error) {
     console.error("Erreur récupération conversations:", error.stack);
-    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
+    res.status(500).json({ 
+      message: "Erreur serveur", 
+      error: error.message, 
+      stack: error.stack 
+    });
   }
 });
   
@@ -127,7 +131,11 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
     res.json(conversation);
   } catch (error) {
     console.error("❌ Erreur récupération conversation :", error.stack);
-    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
+    res.status(500).json({ 
+      message: "Erreur serveur", 
+      error: error.message, 
+      stack: error.stack 
+    });
   }
 });
 
