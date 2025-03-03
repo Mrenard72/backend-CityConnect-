@@ -100,7 +100,8 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
 
     const conversation = await Conversation.findById(conversationId)
       .populate('participants', 'username email')
-      .populate('messages.sender', 'username content timestamp');
+      .populate('messages.sender', 'username content timestamp')
+      .populate('eventId', 'title');
 
     if (!conversation) {
       console.log("⚠️ Conversation introuvable !");
