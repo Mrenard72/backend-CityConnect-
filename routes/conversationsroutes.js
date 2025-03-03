@@ -44,34 +44,40 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
     const { content } = req.body;
 
     console.log(`📩 Tentative d'envoi de message dans la conversation ${conversationId} par ${userId}`);
+    console.log("Données reçues :", req.body);
 
     if (!content) {
-      console.log("⚠️ Message vide détecté !");
+      console.log("⚠️ Message vide !");
       return res.status(400).json({ message: "Message vide" });
     }
 
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
-      console.log(" Conversation introuvable !");
+      console.log("⚠️ Conversation introuvable !");
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Ajout du message et sauvegarde
-    const newMsg = { sender: userId, content, timestamp: new Date() };
-    conversation.messages.push(newMsg);
+    if (!conversation.participants.includes(userId)) {
+      console.log("⚠️ L'utilisateur n'est pas dans cette conversation !");
+      return res.status(403).json({ message: "Vous n'avez pas accès à cette conversation." });
+    }
+
+    console.log("📌 Ajout du message...");
+    conversation.messages.push({ sender: userId, content });
     conversation.lastUpdated = Date.now();
+
+    console.log("✅ Sauvegarde de la conversation...");
     await conversation.save();
 
     console.log("✅ Message enregistré avec succès !");
-    // Renvoyer le nouveau message (en le peuplant éventuellement)
-    const populatedMsg = await conversation.populate('messages.sender', 'username').execPopulate();
-    const addedMessage = populatedMsg.messages[populatedMsg.messages.length - 1];
-    res.json(addedMessage);
+    res.json(conversation);
   } catch (error) {
     console.error("❌ Erreur envoi message:", error);
     res.status(500).json({ message: "Erreur serveur", error });
   }
 });
+
+
 
   
 
