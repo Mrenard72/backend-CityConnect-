@@ -9,50 +9,65 @@ const router = express.Router();
 router.post('/create', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.user;
-    const { recipientId } = req.body;
+    const { recipientId, eventId } = req.body;
 
-    if (!recipientId) return res.status(400).json({ message: "Destinataire manquant" });
+    if (!recipientId || !eventId) {
+      return res.status(400).json({ message: "Destinataire ou événement manquant" });
+    }
 
-    // Vérifier si une conversation existe déjà !
     let conversation = await Conversation.findOne({
-      participants: { $all: [userId, recipientId] }
+      participants: { $all: [userId, recipientId] },
+      eventId
     });
 
     if (!conversation) {
-      conversation = new Conversation({ participants: [userId, recipientId] });
+      conversation = new Conversation({ participants: [userId, recipientId], eventId });
       await conversation.save();
     }
 
     res.status(201).json(conversation);
   } catch (error) {
-    console.error("Erreur création conversation:", error);
+    console.error("❌ Erreur création conversation:", error);
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 
+
 //Envoyer un message
+// ✅ Envoyer un message
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
-    try {
-      const { userId } = req.user;
-      const { conversationId } = req.params;
-      const { content } = req.body;
-  
-      if (!content) return res.status(400).json({ message: "Message vide" });
-  
-      const conversation = await Conversation.findById(conversationId);
-      if (!conversation) return res.status(404).json({ message: "Conversation introuvable" });
-  
-      conversation.messages.push({ sender: userId, content });
-      conversation.lastUpdated = Date.now();
-      await conversation.save();
-  
-      res.json(conversation);
-    } catch (error) {
-      console.error("Erreur envoi message:", error);
-      res.status(500).json({ message: "Erreur serveur" });
+  try {
+    const { userId } = req.user;
+    const { conversationId } = req.params;
+    const { content } = req.body;
+
+    console.log(`📩 Tentative d'envoi de message dans la conversation ${conversationId} par ${userId}`);
+
+    if (!content) {
+      console.log("⚠️ Message vide détecté !");
+      return res.status(400).json({ message: "Message vide" });
     }
-  });
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      console.log("⚠️ Conversation introuvable !");
+      return res.status(404).json({ message: "Conversation introuvable" });
+    }
+
+    console.log("📌 Conversation trouvée, ajout du message...");
+    conversation.messages.push({ sender: userId, content });
+    conversation.lastUpdated = Date.now();
+    await conversation.save();
+
+    console.log("✅ Message enregistré avec succès !");
+    res.json(conversation);
+  } catch (error) {
+    console.error("❌ Erreur envoi message:", error);
+    res.status(500).json({ message: "Erreur serveur", error });
+  }
+});
+
   
 
   //Récupérer les conversations d'un utilisateur
