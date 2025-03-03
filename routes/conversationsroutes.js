@@ -28,9 +28,10 @@ router.post('/create', authMiddleware, async (req, res) => {
     res.status(201).json(conversation);
   } catch (error) {
     console.error("❌ Erreur création conversation:", error);
-    res.status(500).json({ message: "Erreur serveur" });
+    res.status(500).json({ message: "Erreur serveur", error });
   }
 });
+
 
 
 
