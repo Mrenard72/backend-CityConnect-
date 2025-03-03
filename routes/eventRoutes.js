@@ -14,11 +14,11 @@ router.post('/', authMiddleware, async (req, res) => {
 
         const { title, description, location, date, category, maxParticipants, photos } = req.body;
 
-        // ✅ Vérifier si tous les champs requis sont fournis
         if (!title || !description || !location || !date || !category || !maxParticipants) {
             return res.status(400).json({ message: "Tous les champs obligatoires doivent être remplis." });
         }
 
+        // Création de l'événement
         const newEvent = new Event({
             title,
             description,
@@ -27,11 +27,25 @@ router.post('/', authMiddleware, async (req, res) => {
             category,
             createdBy: req.user._id,
             maxParticipants,
-            photos: photos || [] // Ajoute des photos si fournies, sinon tableau vide
+            participants: [req.user._id], // Ajouter le créateur dans la liste des participants
+            photos: photos || []
         });
 
         await newEvent.save();
-        res.status(201).json({ message: 'Événement créé avec succès !', event: newEvent });
+
+        // 🔹 Création de la conversation associée à l'événement
+        const conversation = new Conversation({
+            participants: [req.user._id],
+            eventId: newEvent._id
+        });
+
+        await conversation.save();
+
+        // Mise à jour de l'événement avec l'ID de la conversation
+        newEvent.conversationId = conversation._id;
+        await newEvent.save();
+
+        res.status(201).json({ message: 'Événement créé avec succès !', event: newEvent, conversation });
 
     } catch (error) {
         console.error("❌ Erreur lors de la création de l'événement :", error);
@@ -147,5 +161,37 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Erreur lors de la désinscription', error });
     }
 });
+
+// ✅ 8. ajout pour ajout automatique de l'utilisateur à la conversation
+router.post('/:id/join', authMiddleware, async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
+
+        if (event.participants.length >= event.maxParticipants) {
+            return res.status(400).json({ message: "L'événement est complet." });
+        }
+
+        if (event.participants.includes(req.user._id)) {
+            return res.status(400).json({ message: "Vous êtes déjà inscrit à cet événement." });
+        }
+
+        event.participants.push(req.user._id);
+        await event.save();
+
+        // 🔹 Ajouter l'utilisateur à la conversation de l'événement
+        const conversation = await Conversation.findOne({ eventId: event._id });
+        if (conversation && !conversation.participants.includes(req.user._id)) {
+            conversation.participants.push(req.user._id);
+            await conversation.save();
+        }
+
+        res.json({ message: 'Inscription réussie à l’événement', event, conversation });
+    } catch (error) {
+        console.error("❌ Erreur lors de l'inscription :", error);
+        res.status(500).json({ message: 'Erreur lors de l’inscription', error });
+    }
+});
+
 
 module.exports = router;
