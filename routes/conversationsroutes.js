@@ -71,5 +71,28 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
     }
   });
   
+  // ✅ Récupérer une conversation spécifique par son ID
+router.get('/:conversationId', authMiddleware, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    console.log("🔍 Recherche de la conversation avec ID :", conversationId); // Debugging
+
+    const conversation = await Conversation.findById(conversationId)
+      .populate('participants', 'username email')
+      .populate('messages.sender', 'username content timestamp');
+
+    if (!conversation) {
+      console.log("⚠️ Conversation introuvable !");
+      return res.status(404).json({ message: "Conversation introuvable" });
+    }
+
+    console.log("📩 Conversation trouvée :", conversation);
+    res.json(conversation);
+  } catch (error) {
+    console.error("❌ Erreur récupération conversation :", error);
+    res.status(500).json({ message: "Erreur serveur", error });
+  }
+});
+
 
   module.exports = router;
