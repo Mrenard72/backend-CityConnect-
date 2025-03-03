@@ -78,7 +78,8 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
       const { userId } = req.user;
       const conversations = await Conversation.find({ participants: userId })
         .populate('participants', 'username email')
-        .populate('messages.sender', 'username');
+        .populate('messages.sender', 'username')
+        .populate('eventId', 'title');
   
       res.json(conversations);
     } catch (error) {
