@@ -75,7 +75,7 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
 
   router.get('/my-conversations', authMiddleware, async (req, res) => {
     try {
-      const { userId } = req.user;
+      const userId = req.user._id; 
       const conversations = await Conversation.find({ participants: userId })
         .populate('participants', 'username email')
         .populate('messages.sender', 'username');
