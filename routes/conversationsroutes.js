@@ -4,7 +4,6 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-
 // Créer une nouvelle conversation
 router.post('/create', authMiddleware, async (req, res) => {
   try {
@@ -32,11 +31,7 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
-
-
-
-//Envoyer un message
-// ✅ Envoyer un message
+// ✅ Envoyer un message (sans .execPopulate)
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.user;
@@ -52,7 +47,7 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
 
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
-      console.log(" Conversation introuvable !");
+      console.log("Conversation introuvable !");
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
@@ -63,36 +58,42 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
     await conversation.save();
 
     console.log("✅ Message enregistré avec succès !");
-    // Renvoyer le nouveau message (en le peuplant éventuellement)
-    const populatedMsg = await conversation.populate('messages.sender', 'username').execPopulate();
-    const addedMessage = populatedMsg.messages[populatedMsg.messages.length - 1];
-    res.json(addedMessage);
+
+    // -------------------------
+    // ❌ Supprimer .execPopulate()
+    // 🟢 Peupler directement le document conversation
+    // -------------------------
+    await conversation.populate('messages.sender', 'username');
+
+    // Récupérer le dernier message
+    const addedMessage = conversation.messages[conversation.messages.length - 1];
+
+    // Renvoyer ce dernier message peuplé
+    return res.json(addedMessage);
+
   } catch (error) {
     console.error("❌ Erreur envoi message:", error);
     res.status(500).json({ message: "Erreur serveur", error });
   }
 });
 
-  
+// ✅ Récupérer les conversations d'un utilisateur
+router.get('/my-conversations', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const conversations = await Conversation.find({ participants: userId })
+      .populate('participants', 'username email')
+      .populate('messages.sender', 'username')
+      .populate('eventId', 'title');
 
-  //Récupérer les conversations d'un utilisateur
+    res.json(conversations);
+  } catch (error) {
+    console.error("Erreur récupération conversations:", error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
 
-  router.get('/my-conversations', authMiddleware, async (req, res) => {
-    try {
-      const { userId } = req.user;
-      const conversations = await Conversation.find({ participants: userId })
-        .populate('participants', 'username email')
-        .populate('messages.sender', 'username')
-        .populate('eventId', 'title');
-  
-      res.json(conversations);
-    } catch (error) {
-      console.error("Erreur récupération conversations:", error);
-      res.status(500).json({ message: "Erreur serveur" });
-    }
-  });
-  
-  // ✅ Récupérer une conversation spécifique par son ID
+// ✅ Récupérer une conversation spécifique par son ID
 router.get('/:conversationId', authMiddleware, async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -116,5 +117,4 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
   }
 });
 
-
-  module.exports = router;
+module.exports = router;
