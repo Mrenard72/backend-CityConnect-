@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
 
@@ -8,7 +7,7 @@ const router = express.Router();
 // Créer une nouvelle conversation
 router.post('/create', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user._id; // Utilisation de req.user._id
+    const userId = req.user._id; // Utiliser req.user._id
     const { recipientId, eventId } = req.body;
 
     if (!recipientId || !eventId) {
@@ -32,7 +31,7 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
-// Envoyer un message – version avec findByIdAndUpdate
+// Envoyer un message – version finale avec réponse manuelle
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
     const userId = req.user._id; // Utilisation de req.user._id
@@ -46,28 +45,48 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Message vide" });
     }
 
-    // Utilisation de l'opérateur $push pour ajouter le message et $set pour mettre à jour lastUpdated
-    const update = {
-      $push: { messages: { sender: userId, content, timestamp: new Date() } },
-      $set: { lastUpdated: new Date() }
-    };
-
-    const options = { new: true };
-    const updatedConversation = await Conversation.findByIdAndUpdate(conversationId, update, options)
-      .populate('messages.sender', 'username');
-
-    if (!updatedConversation || !updatedConversation.messages || !updatedConversation.messages.length) {
-      return res.status(404).json({ message: "Erreur lors de l'enregistrement du message" });
+    // Récupérer la conversation existante
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Récupérer le dernier message ajouté
-    const addedMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
-    console.log("🔎 Message renvoyé après mise à jour :", addedMessage);
+    // Créer et ajouter le message
+    const newMsg = {
+      sender: userId, // On utilise directement userId
+      content,
+      timestamp: new Date()
+    };
 
-    res.json(addedMessage);
+    conversation.messages.push(newMsg);
+    conversation.lastUpdated = new Date();
+    await conversation.save();
+    console.log("✅ Message enregistré dans la conversation.");
+
+    // Récupérer le message ajouté depuis le document sauvegardé
+    const savedMsg = conversation.messages[conversation.messages.length - 1];
+    console.log("Message sauvegardé (brut):", savedMsg);
+
+    // Construire manuellement la réponse en forçant le champ sender avec les infos de req.user
+    const responseMessage = {
+      _id: savedMsg._id,
+      content: savedMsg.content,
+      timestamp: savedMsg.timestamp,
+      sender: {
+        _id: req.user._id,
+        username: req.user.username
+      }
+    };
+
+    console.log("🔎 Message final renvoyé :", responseMessage);
+    res.json(responseMessage);
   } catch (error) {
     console.error("❌ Erreur envoi message:", error.stack);
-    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 
@@ -83,7 +102,11 @@ router.get('/my-conversations', authMiddleware, async (req, res) => {
     res.json(conversations);
   } catch (error) {
     console.error("Erreur récupération conversations:", error.stack);
-    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 
@@ -107,7 +130,11 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
     res.json(conversation);
   } catch (error) {
     console.error("❌ Erreur récupération conversation:", error.stack);
-    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 
