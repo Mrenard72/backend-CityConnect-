@@ -1,15 +1,14 @@
 const mongoose = require('mongoose');
 
-const MessageSchema = new mongoose.Schema({
-  sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  content: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now },
+const conversationSchema = new mongoose.Schema({
+    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    messages: [{
+        sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        content: String,
+        timestamp: { type: Date, default: Date.now }
+    }],
+    lastUpdated: { type: Date, default: Date.now },
+    eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true } // Lien avec un événement
 });
 
-const ConversationSchema = new mongoose.Schema({
-  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  messages: [MessageSchema],
-  lastUpdated: { type: Date, default: Date.now },
-});
-
-module.exports = mongoose.model('Conversation', ConversationSchema);
+module.exports = mongoose.model('Conversation', conversationSchema);
