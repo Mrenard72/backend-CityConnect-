@@ -52,17 +52,21 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
 
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
-      console.log("⚠️ Conversation introuvable !");
+      console.log(" Conversation introuvable !");
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    console.log("📌 Conversation trouvée, ajout du message...");
-    conversation.messages.push({ sender: userId, content });
+    // Ajout du message et sauvegarde
+    const newMsg = { sender: userId, content, timestamp: new Date() };
+    conversation.messages.push(newMsg);
     conversation.lastUpdated = Date.now();
     await conversation.save();
 
     console.log("✅ Message enregistré avec succès !");
-    res.json(conversation);
+    // Renvoyer le nouveau message (en le peuplant éventuellement)
+    const populatedMsg = await conversation.populate('messages.sender', 'username').execPopulate();
+    const addedMessage = populatedMsg.messages[populatedMsg.messages.length - 1];
+    res.json(addedMessage);
   } catch (error) {
     console.error("❌ Erreur envoi message:", error);
     res.status(500).json({ message: "Erreur serveur", error });
