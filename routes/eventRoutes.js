@@ -167,7 +167,7 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
         const event = await Event.findById(req.params.id);
         if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
 
-        // Vérifier si l'utilisateur est inscrit avant de le retirer
+        // Vérifier si l'utilisateur est inscrit avant de le retirer !
         if (!event.participants.includes(req.user._id)) {
             return res.status(400).json({ message: "Vous n'êtes pas inscrit à cet événement." });
         }
