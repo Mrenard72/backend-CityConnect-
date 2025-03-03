@@ -1,7 +1,7 @@
 const express = require('express');
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
-const User = require('../models/User'); // Nécessaire pour récupérer le pseudo
+const User = require('../models/User'); // Pour récupérer les infos du sender
 
 const router = express.Router();
 
@@ -32,7 +32,7 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
-// Envoyer un message (version modifiée sans .execPopulate())
+// Envoyer un message (version utilisant un second findById + populate)
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.user;
@@ -53,23 +53,25 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Création du message
+    // Création du message et sauvegarde
     const newMsg = { sender: userId, content, timestamp: new Date() };
     conversation.messages.push(newMsg);
     conversation.lastUpdated = Date.now();
     await conversation.save();
     console.log("✅ Message enregistré avec succès !");
 
-    // Récupérer le dernier message créé
-    const addedMsg = conversation.messages[conversation.messages.length - 1];
-
-    // Récupérer les infos de l'utilisateur (pseudo)
-    const senderData = await User.findById(userId).select('username');
-    const addedMessage = { 
-      ...addedMsg.toObject(), 
-      sender: senderData 
-    };
-
+    // Refait un findById avec populate pour obtenir les infos complètes du dernier message
+    const convPop = await Conversation.findById(conversationId)
+      .populate('messages.sender', 'username')
+      .lean();
+    
+    if (!convPop || !convPop.messages || convPop.messages.length === 0) {
+      console.log("❌ Aucune donnée trouvée après save");
+      return res.status(404).json({ message: "Aucun message trouvé après enregistrement" });
+    }
+    
+    const addedMessage = convPop.messages[convPop.messages.length - 1];
+    console.log("🔎 Dernier message renvoyé :", addedMessage);
     res.json(addedMessage);
   } catch (error) {
     console.error("❌ Erreur envoi message:", error.stack);
