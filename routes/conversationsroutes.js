@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose'); // Ajouté pour cast userId
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
 const User = require('../models/User'); // Pour récupérer les infos du sender
@@ -32,7 +33,7 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
-// Envoyer un message (version utilisant un second findById + populate)
+// Envoyer un message (version modifiée sans .execPopulate())
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.user;
@@ -53,8 +54,12 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Création du message et sauvegarde
-    const newMsg = { sender: userId, content, timestamp: new Date() };
+    // Forcer le sender à être casté en ObjectId
+    const newMsg = { 
+      sender: mongoose.Types.ObjectId(userId), 
+      content, 
+      timestamp: new Date() 
+    };
     conversation.messages.push(newMsg);
     conversation.lastUpdated = Date.now();
     await conversation.save();
