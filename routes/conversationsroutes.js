@@ -1,5 +1,5 @@
 const express = require('express');
-const mongoose = require('mongoose'); // Nécessaire pour les cast éventuels
+const mongoose = require('mongoose'); // Pour cast si besoin
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
 const User = require('../models/User'); // Pour récupérer les infos du sender
@@ -9,7 +9,8 @@ const router = express.Router();
 // Créer une nouvelle conversation
 router.post('/create', authMiddleware, async (req, res) => {
   try {
-    const { userId } = req.user;
+    // Utiliser req.user._id au lieu de req.user.userId
+    const userId = req.user._id;
     const { recipientId, eventId } = req.body;
 
     if (!recipientId || !eventId) {
@@ -36,7 +37,8 @@ router.post('/create', authMiddleware, async (req, res) => {
 // Envoyer un message (version modifiée avec $slice pour récupérer le sender peuplé)
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
-    const { userId } = req.user;
+    // Récupérer l'id de l'utilisateur via _id
+    const userId = req.user._id;
     const { conversationId } = req.params;
     const { content } = req.body;
 
@@ -54,9 +56,9 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Création du message
+    // Création du message (sender est maintenant correctement défini)
     const newMsg = { 
-      sender: userId, // Stocké en tant qu'ObjectId grâce au schéma
+      sender: userId, 
       content, 
       timestamp: new Date() 
     };
@@ -65,7 +67,7 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
     await conversation.save();
     console.log("✅ Message enregistré avec succès !");
 
-    // Utiliser une projection avec $slice pour ne récupérer que le dernier message
+    // Utiliser une projection avec $slice pour récupérer uniquement le dernier message et le peupler
     const convPop = await Conversation.findOne(
       { _id: conversationId },
       { messages: { $slice: -1 } } // Récupère uniquement le dernier message
@@ -92,7 +94,7 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
 // Récupérer les conversations d'un utilisateur
 router.get('/my-conversations', authMiddleware, async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.user._id;
     const conversations = await Conversation.find({ participants: userId })
       .populate('participants', 'username email')
       .populate('messages.sender', 'username')
