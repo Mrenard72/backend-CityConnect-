@@ -30,6 +30,7 @@ app.use('/events', eventsRouter); // Routes sorties
 app.use('/conversations', conversationsRouter); // Routes messagerie
 app.use('/users', userRouter); // routes users ()
 app.use('/api', restaurantRouter);
+console.log("✅ Routes restaurants chargées !");
 
 
 app.get('/', (req, res) => {
