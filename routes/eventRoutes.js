@@ -162,7 +162,7 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
     }
 });
 
-// ✅ 8. ajout pour ajout automatique de l'utilisateur à la conversation
+// ✅ 8. ajout automatique de l'utilisateur à la conversation
 router.post('/:id/join', authMiddleware, async (req, res) => {
     try {
         const event = await Event.findById(req.params.id);
