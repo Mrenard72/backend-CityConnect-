@@ -2,7 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
-const User = require('../models/User');
 
 const router = express.Router();
 
@@ -33,13 +32,10 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
-// Envoyer un message (version avec logs de debug supplémentaires)
+// Envoyer un message – version finale avec réponse manuelle
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
-    // Vérification du userId
-    const userId = req.user._id;
-    console.log("userId récupéré :", userId);
-
+    const userId = req.user._id; // Utiliser req.user._id
     const { conversationId } = req.params;
     const { content } = req.body;
 
@@ -50,15 +46,15 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Message vide" });
     }
 
-    // Récupérer la conversation existante
+    // Récupérer la conversation
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Créer le message en forçant le cast du sender
+    // Créer le message
     const newMsg = { 
-      sender: mongoose.Types.ObjectId(userId), 
+      sender: userId, 
       content, 
       timestamp: new Date() 
     };
@@ -68,28 +64,19 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
     await conversation.save();
     console.log("✅ Message enregistré dans la conversation.");
 
-    // Log du dernier message sauvegardé (avant population)
-    const savedMsg = conversation.messages[conversation.messages.length - 1];
+    // Récupérer le message nouvellement ajouté depuis le document sauvegardé
+    const savedMsg = conversation.messages[conversation.messages.length - 1].toObject();
     console.log("Message sauvegardé (brut) :", savedMsg);
 
-    // Recharger la conversation pour peupler le champ sender
-    const convPop = await Conversation.findById(conversationId)
-      .populate('messages.sender', 'username');
-    console.log("Document rechargé avec populate :", convPop);
+    // Pour contourner le problème de population qui ne renvoie pas le username,
+    // nous remplaçons manuellement le champ sender par req.user
+    savedMsg.sender = {
+      _id: req.user._id,
+      username: req.user.username
+    };
 
-    // Vérifier le dernier message après peuplement
-    const addedMessage = convPop.messages[convPop.messages.length - 1];
-    console.log("🔎 Dernier message après population :", addedMessage);
-
-    // Si le champ sender n'est toujours pas présent, nous pouvons ajouter manuellement
-    if (!addedMessage.sender || !addedMessage.sender.username) {
-      console.log("Le champ sender n'est pas peuplé, récupération manuelle...");
-      const senderData = await User.findById(userId).select('username');
-      addedMessage.sender = senderData;
-      console.log("Après ajout manuel :", addedMessage);
-    }
-
-    res.json(addedMessage);
+    console.log("🔎 Message final renvoyé :", savedMsg);
+    res.json(savedMsg);
   } catch (error) {
     console.error("❌ Erreur envoi message:", error.stack);
     res.status(500).json({ 
