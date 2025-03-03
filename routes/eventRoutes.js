@@ -182,6 +182,17 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
     }
 });
 
+router.get('/:id/participants', authMiddleware, async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('participants', 'username');
+        if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
+
+        res.json({ participants: event.participants });
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des participants:", error);
+        res.status(500).json({ message: 'Erreur serveur', error });
+    }
+});
 
 
 module.exports = router;
