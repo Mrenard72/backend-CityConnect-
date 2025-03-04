@@ -119,16 +119,17 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
 
     const conversation = await Conversation.findById(conversationId)
       .populate('participants', 'username _id')
-      .populate('messages.sender', 'username _id')
+      .populate({
+        path: 'messages.sender',
+        select: 'username _id' // 👈 Ajoute ceci pour bien récupérer `username`
+      })
       .populate('eventId', 'title');
 
     if (!conversation) {
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    // Log pour debug
-    console.log("Messages peuplés:", JSON.stringify(conversation.messages, null, 2));
-    console.log("Participants:", JSON.stringify(conversation.participants, null, 2));
+    console.log("Messages peuplés après correction :", JSON.stringify(conversation.messages, null, 2));
 
     res.json(conversation);
   } catch (error) {
@@ -136,5 +137,6 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 });
+
 
 module.exports = router;
