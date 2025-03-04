@@ -156,7 +156,7 @@ router.put('/change-password', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Ancien mot de passe incorrect' });
     }
 
-    // 🔥 Ajout de logs pour voir ce qui se passe
+    // Ajout de logs pour voir ce qui se passe
     console.log("✅ Ancien mot de passe correct.");
 
     // Hashage du nouveau mot de passe

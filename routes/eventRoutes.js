@@ -94,7 +94,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// ✅ 4. Mettre à jour un événement (authentification requise, seul le créateur peut modifier)
+// ✅ 4. Mettre à jour un événement (authentification requise, seul le créateur peut modifier) !
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const event = await Event.findById(req.params.id);
