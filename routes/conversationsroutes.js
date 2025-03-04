@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
 
@@ -8,11 +9,14 @@ const router = express.Router();
 router.post('/create', authMiddleware, async (req, res) => {
   try {
     const userId = req.user._id; // Utiliser req.user._id
-    const { recipientId, eventId } = req.body;
+    let { recipientId, eventId } = req.body;
 
     if (!recipientId || !eventId) {
       return res.status(400).json({ message: "Destinataire ou événement manquant" });
     }
+    
+    // Convertir recipientId en ObjectId (si ce n'est pas déjà le cas)
+    recipientId = mongoose.Types.ObjectId(recipientId);
 
     // Recherche d'une conversation existante qui contient les deux participants
     let conversation = await Conversation.findOne({
@@ -86,7 +90,7 @@ router.get('/my-conversations', authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
   }
 });
-  
+
 // Récupérer une conversation spécifique par son ID
 router.get('/:conversationId', authMiddleware, async (req, res) => {
   try {
