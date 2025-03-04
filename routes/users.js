@@ -57,7 +57,6 @@ router.post('/upload-profile-pic', authMiddleware, async (req, res) => {
         const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
-        await deleteOldPhoto(user.photo); // 🔥 Supprime l’ancienne image sur Cloudinary
         user.photo = photoUrl;
         await user.save();
 
@@ -77,7 +76,6 @@ router.put('/profile', authMiddleware, async (req, res) => {
 
         if (username) user.username = username;
         if (photo && photo.startsWith("https://res.cloudinary.com/")) {
-            await deleteOldPhoto(user.photo); // 🔥 Supprime l’ancienne image sur Cloudinary
             user.photo = photo;
         }
 
