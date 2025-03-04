@@ -9,7 +9,7 @@ console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
 
 // ✅ Fonction pour générer un token JWT
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '360d' });
 };
 
 // ✅ Route d'inscription
@@ -28,8 +28,7 @@ router.post('/register', async (req, res) => {
     if (existingUser) return res.status(400).json({ message: 'Email déjà utilisé' });
 
     // ✅ Créer un nouvel utilisateur
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, email, password: hashedPassword, photo });
+    const newUser = new User({ username, email, password, photo });
     await newUser.save();
 
     // ✅ Générer un token
@@ -130,44 +129,56 @@ router.post('/logout', authMiddleware, (req, res) => {
   }
 });
 
-// Route pour changer le mot de passe
-
 // ✅ Route pour changer le mot de passe
 router.put('/change-password', authMiddleware, async (req, res) => {
   try {
-    // Vérifier si les données sont bien envoyées
+    // Vérification des données reçues
     console.log("🔍 Données reçues:", req.body);
 
-    // Extraire lastPassword et newPassword depuis le body
+    // Extraire les valeurs du body
     const { lastPassword, newPassword } = req.body;
 
-    // Vérifier si les champs sont bien fournis
+    // Vérification que les champs sont bien fournis
     if (!lastPassword || !newPassword) {
       return res.status(400).json({ message: "Veuillez remplir tous les champs." });
     }
 
-    // Vérifier si l'utilisateur existe
+    // Récupération de l'utilisateur depuis la base de données
     const user = await User.findById(req.user.userId);
-    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
 
-    // Vérifier si l'ancien mot de passe est correct
+    // Vérification de l'ancien mot de passe
     const isMatch = await bcrypt.compare(lastPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Ancien mot de passe incorrect' });
     }
 
-    // Hacher le nouveau mot de passe
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    await user.save();
+    // Ajout de logs pour voir ce qui se passe
+    console.log("✅ Ancien mot de passe correct.");
 
-    res.json({ message: 'Mot de passe mis à jour avec succès' });
+    // Hashage du nouveau mot de passe
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Vérification du hashage (log pour voir le résultat)
+    console.log("🔑 Nouveau hash du mot de passe :", hashedPassword);
+    const updateresult = await user.updateOne({ password: hashedPassword });
+    if (updateresult.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Erreur serveur', error: "update failed" });
+      }
+      console.log("✅ Mot de passe mis à jour en base de données.");
+      res.json({ message: 'Mot de passe mis à jour avec succès' });
+    // Mise à jour du mot de passe dans la base de données
+    // user.password = hashedPassword;
+    // await user.save();
 
   } catch (error) {
     console.error("❌ Erreur lors de la modification du mot de passe :", error);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
 
 
 module.exports = router;

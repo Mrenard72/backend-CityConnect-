@@ -68,13 +68,18 @@ router.post('/', authMiddleware, async (req, res) => {
 // ✅ 2. Récupérer tous les événements
 router.get('/', async (req, res) => {
     try {
-        const events = await Event.find().populate('createdBy', 'username');
-        res.json(events);
+      const query = {};
+      if (req.query.category) {
+        // Utilisation d'une regex insensible à la casse pour filtrer
+        query.category = { $regex: new RegExp(`^${req.query.category}$`, 'i') };
+      }
+      const events = await Event.find(query).populate('createdBy', 'username');
+      res.json(events);
     } catch (error) {
-        console.error("❌ Erreur lors de la récupération des événements :", error);
-        res.status(500).json({ message: 'Erreur lors de la récupération des événements', error });
+      console.error("❌ Erreur lors de la récupération des événements :", error);
+      res.status(500).json({ message: 'Erreur lors de la récupération des événements', error });
     }
-});
+  });
 
 // ✅ 3. Récupérer un événement par ID
 router.get('/:id', async (req, res) => {
@@ -89,7 +94,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// ✅ 4. Mettre à jour un événement (authentification requise, seul le créateur peut modifier)
+// ✅ 4. Mettre à jour un événement (authentification requise, seul le créateur peut modifier) !
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const event = await Event.findById(req.params.id);
