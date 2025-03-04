@@ -103,23 +103,29 @@ router.get('/my-conversations', authMiddleware, async (req, res) => {
 router.get('/:conversationId', authMiddleware, async (req, res) => {
   try {
     const { conversationId } = req.params;
-    console.log("🔍 Recherche de la conversation avec ID :", conversationId);
+    const userId = req.user._id;
+    console.log("🔍 Recherche conversation, ID:", conversationId, "User:", userId);
 
     const conversation = await Conversation.findById(conversationId)
-      .populate('participants', 'username email') // Ceci est correct
-      .populate('messages.sender', 'username') // Modifié: seulement username
+      .populate('participants', 'username _id')
+      .populate({
+        path: 'messages.sender',
+        select: 'username _id'
+      })
       .populate('eventId', 'title');
 
     if (!conversation) {
-      console.log("⚠️ Conversation introuvable !");
       return res.status(404).json({ message: "Conversation introuvable" });
     }
 
-    console.log("📩 Conversation trouvée :", conversation);
+    // Log pour debug
+    console.log("Messages peuplés:", JSON.stringify(conversation.messages, null, 2));
+    console.log("Participants:", JSON.stringify(conversation.participants, null, 2));
+
     res.json(conversation);
   } catch (error) {
     console.error("❌ Erreur récupération conversation:", error.stack);
-    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 });
 
