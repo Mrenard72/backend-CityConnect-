@@ -117,7 +117,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 });
 
 // ✅ 6. Participer à un événement
-// ✅ 8. ajout automatique de l'utilisateur à la conversation
+//  ajout automatique de l'utilisateur à la conversation
 router.post('/:id/join', authMiddleware, async (req, res) => {
     try {
         const event = await Event.findById(req.params.id);

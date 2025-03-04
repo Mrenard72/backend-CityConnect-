@@ -9,7 +9,7 @@ const router = express.Router();
 // Créer une nouvelle conversation (mise à jour pour forcer l'ajout des deux participants)
 router.post('/create', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user._id; // Utiliser req.user._id
+    const userId = req.user._id; // Utiliser req.user._id !
     let { recipientId, eventId } = req.body;
     console.log("Création de conversation - données reçues:", { userId, recipientId, eventId });
 
