@@ -5,42 +5,37 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// Créer une nouvelle conversation (avec vérification des deux participants)
+// Créer une nouvelle conversation (mise à jour pour forcer l'ajout des deux participants)
 router.post('/create', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user._id; // ID du user connecté
+    const userId = req.user._id; // Utiliser req.user._id
     let { recipientId, eventId } = req.body;
-    console.log("Création conversation - données reçues:", { userId, recipientId, eventId });
+    console.log("Création de conversation - données reçues:", { userId, recipientId, eventId });
 
     if (!recipientId || !eventId) {
       return res.status(400).json({ message: "Destinataire ou événement manquant" });
     }
     
-    // Vérifier que le recipient est différent de l'utilisateur connecté
-    if (String(userId) === String(recipientId)) {
-      return res.status(400).json({ message: "Le recipientId doit être différent de l'utilisateur connecté" });
-    }
-
-    // Convertir recipientId en ObjectId, si nécessaire
+    // Convertir recipientId en ObjectId si nécessaire
     try {
       recipientId = mongoose.Types.ObjectId(recipientId);
     } catch (e) {
       return res.status(400).json({ message: "recipientId invalide" });
     }
 
-    // Recherche d'une conversation existante pour cet événement contenant les deux participants
+    // Recherche d'une conversation existante qui contient les deux participants
     let conversation = await Conversation.findOne({
       eventId,
       participants: { $all: [userId, recipientId] }
     });
-
+    
     if (!conversation) {
       // Créer une nouvelle conversation avec les deux participants
       conversation = new Conversation({ participants: [userId, recipientId], eventId });
       await conversation.save();
-      console.log("Nouvelle conversation créée:", conversation);
+      console.log("Nouvelle conversation créée :", conversation);
     } else {
-      console.log("Conversation existante trouvée:", conversation);
+      console.log("Conversation existante trouvée :", conversation);
     }
 
     res.status(201).json(conversation);
@@ -50,10 +45,10 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
-// Envoyer un message – version avec findByIdAndUpdate et population
+// Envoyer un message – version avec findByIdAndUpdate pour récupérer le sender peuplé
 router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user._id; // ID du user connecté
+    const userId = req.user._id; // Utilisation de req.user._id
     const { conversationId } = req.params;
     const { content } = req.body;
 
@@ -64,7 +59,7 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Message vide" });
     }
 
-    // Ajouter le message via $push et mettre à jour lastUpdated
+    // Utiliser $push pour ajouter le message et $set pour mettre à jour lastUpdated
     const update = {
       $push: { messages: { sender: userId, content, timestamp: new Date() } },
       $set: { lastUpdated: new Date() }
