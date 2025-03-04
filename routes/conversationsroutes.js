@@ -14,10 +14,10 @@ router.post('/create', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Destinataire ou événement manquant" });
     }
 
-    // Recherche d'une conversation existante qui contient déjà le user logué
+    // Recherche d'une conversation existante pour cet événement contenant le user logué
     let conversation = await Conversation.findOne({
       eventId,
-      participants: userId  // Rechercher toute conversation pour cet événement contenant le user logué
+      participants: userId
     });
 
     if (conversation) {
