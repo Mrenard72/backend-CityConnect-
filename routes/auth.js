@@ -9,7 +9,7 @@ console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
 
 // ✅ Fonction pour générer un token JWT
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '360d' });
 };
 
 // ✅ Route d'inscription
