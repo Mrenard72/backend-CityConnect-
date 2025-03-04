@@ -8,6 +8,7 @@ const Conversation = require('../models/Conversation');
 router.post('/', authMiddleware, async (req, res) => {
     try {
         console.log("🔍 Utilisateur connecté :", req.user);
+        console.log("📥 Données reçues :", req.body); // 🔥 Vérification de l'entrée
 
         if (!req.user || !req.user._id) {
             console.log("❌ Utilisateur non authentifié !");
