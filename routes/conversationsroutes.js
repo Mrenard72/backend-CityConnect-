@@ -106,8 +106,8 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
     console.log("🔍 Recherche de la conversation avec ID :", conversationId);
 
     const conversation = await Conversation.findById(conversationId)
-      .populate('participants', 'username email')
-      .populate('messages.sender', 'username content timestamp')
+      .populate('participants', 'username email') // Ceci est correct
+      .populate('messages.sender', 'username') // Modifié: seulement username
       .populate('eventId', 'title');
 
     if (!conversation) {
