@@ -164,13 +164,16 @@ router.put('/change-password', authMiddleware, async (req, res) => {
     // Vérification du hashage (log pour voir le résultat)
     console.log("🔑 Nouveau hash du mot de passe :", hashedPassword);
 
+    user.updateOne({ password: hashedPassword }, (err, success) => {
+      if (err) {
+        return res.status(500).json({ message: 'Erreur serveur', error: err });
+      }
+      console.log("✅ Mot de passe mis à jour en base de données.");
+      res.json({ message: 'Mot de passe mis à jour avec succès' });
+    });
     // Mise à jour du mot de passe dans la base de données
-    user.password = hashedPassword;
-    await user.save();
-
-    console.log("✅ Mot de passe mis à jour en base de données.");
-
-    res.json({ message: 'Mot de passe mis à jour avec succès' });
+    // user.password = hashedPassword;
+    // await user.save();
 
   } catch (error) {
     console.error("❌ Erreur lors de la modification du mot de passe :", error);
