@@ -2,23 +2,31 @@ const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event'); // 📌 Import du modèle
 const authMiddleware = require('../middleware/auth'); // 🔒 Middleware d'authentification
+const Conversation = require('../models/Conversation');
 
 // ✅ 1. Créer un événement (authentification requise)
 router.post('/', authMiddleware, async (req, res) => {
     try {
         console.log("🔍 Utilisateur connecté :", req.user);
+        console.log("📥 Données reçues :", req.body); // 🔥 Vérification de l'entrée
 
         if (!req.user || !req.user._id) {
+            console.log("❌ Utilisateur non authentifié !");
             return res.status(401).json({ message: "Utilisateur non authentifié." });
         }
 
+        console.log("📥 Données reçues :", req.body);
+
         const { title, description, location, date, category, maxParticipants, photos } = req.body;
 
-        // ✅ Vérifier si tous les champs requis sont fournis
         if (!title || !description || !location || !date || !category || !maxParticipants) {
+            console.log("⚠️ Champs manquants !");
             return res.status(400).json({ message: "Tous les champs obligatoires doivent être remplis." });
         }
 
+        console.log("✅ Données validées, création de l'événement...");
+
+        // Création de l'événement
         const newEvent = new Event({
             title,
             description,
@@ -26,18 +34,36 @@ router.post('/', authMiddleware, async (req, res) => {
             date,
             category,
             createdBy: req.user._id,
-            maxParticipants,
-            photos: photos || [] // Ajoute des photos si fournies, sinon tableau vide
+            maxParticipants: parseInt(maxParticipants, 10),
+            participants: [req.user._id], // Ajouter le créateur dans la liste des participants
+            photos: photos || []
         });
 
         await newEvent.save();
-        res.status(201).json({ message: 'Événement créé avec succès !', event: newEvent });
+        console.log("🎉 Événement enregistré :", newEvent);
+
+        // 🔹 Création de la conversation associée à l'événement
+        const conversation = new Conversation({
+            participants: [req.user._id],
+            eventId: newEvent._id
+        });
+
+        await conversation.save();
+        console.log("💬 Conversation créée :", conversation);
+
+        // Mise à jour de l'événement avec l'ID de la conversation
+        newEvent.conversationId = conversation._id;
+        await newEvent.save();
+
+        console.log("🚀 Événement et conversation liés !");
+        res.status(201).json({ message: 'Événement créé avec succès !', event: newEvent, conversation });
 
     } catch (error) {
         console.error("❌ Erreur lors de la création de l'événement :", error);
         res.status(500).json({ message: 'Erreur lors de la création de l’événement', error });
     }
 });
+
 
 // ✅ 2. Récupérer tous les événements
 router.get('/', async (req, res) => {
@@ -102,17 +128,16 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 });
 
 // ✅ 6. Participer à un événement
+//  ajout automatique de l'utilisateur à la conversation
 router.post('/:id/join', authMiddleware, async (req, res) => {
     try {
         const event = await Event.findById(req.params.id);
         if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
 
-        // Vérifier si l'événement est complet
         if (event.participants.length >= event.maxParticipants) {
             return res.status(400).json({ message: "L'événement est complet." });
         }
 
-        // Vérifier si l'utilisateur est déjà inscrit
         if (event.participants.includes(req.user._id)) {
             return res.status(400).json({ message: "Vous êtes déjà inscrit à cet événement." });
         }
@@ -120,12 +145,32 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
         event.participants.push(req.user._id);
         await event.save();
 
-        res.json({ message: 'Inscription réussie à l’événement', event });
+        // 🔹 Ajouter l'utilisateur à la conversation de l'événement
+        let conversation = await Conversation.findOne({ eventId: event._id });
+
+        if (!conversation) {
+            console.log("🚀 Création d'une nouvelle conversation...");
+            conversation = new Conversation({
+                participants: [req.user._id],
+                eventId: event._id
+            });
+            await conversation.save();
+        } else {
+            console.log("📌 Ajout de l'utilisateur à la conversation existante.");
+            if (!conversation.participants.includes(req.user._id)) {
+                conversation.participants.push(req.user._id);
+                await conversation.save();
+            }
+        }
+
+        res.json({ message: 'Inscription réussie à l’événement', event, conversation });
+
     } catch (error) {
         console.error("❌ Erreur lors de l'inscription :", error);
         res.status(500).json({ message: 'Erreur lors de l’inscription', error });
     }
 });
+
 
 // ✅ 7. Quitter un événement
 router.post('/:id/leave', authMiddleware, async (req, res) => {
@@ -133,7 +178,7 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
         const event = await Event.findById(req.params.id);
         if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
 
-        // Vérifier si l'utilisateur est inscrit avant de le retirer
+        // Vérifier si l'utilisateur est inscrit avant de le retirer !
         if (!event.participants.includes(req.user._id)) {
             return res.status(400).json({ message: "Vous n'êtes pas inscrit à cet événement." });
         }
@@ -147,5 +192,18 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Erreur lors de la désinscription', error });
     }
 });
+
+router.get('/:id/participants', authMiddleware, async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('participants', 'username');
+        if (!event) return res.status(404).json({ message: 'Événement non trouvé' });
+
+        res.json({ participants: event.participants });
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des participants:", error);
+        res.status(500).json({ message: 'Erreur serveur', error });
+    }
+});
+
 
 module.exports = router;

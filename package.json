@@ -6,7 +6,11 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+<<<<<<< HEAD
     "bcrypt": "^5.1.1",
+=======
+    "axios": "^1.8.1",
+>>>>>>> 4c615b8a2307fee250171433fdedbcb17d065dbf
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.5.1",
     "cookie-parser": "~1.4.4",

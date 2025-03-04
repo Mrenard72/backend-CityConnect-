@@ -130,4 +130,44 @@ router.post('/logout', authMiddleware, (req, res) => {
   }
 });
 
+// Route pour changer le mot de passe
+
+// ✅ Route pour changer le mot de passe
+router.put('/change-password', authMiddleware, async (req, res) => {
+  try {
+    // Vérifier si les données sont bien envoyées
+    console.log("🔍 Données reçues:", req.body);
+
+    // Extraire lastPassword et newPassword depuis le body
+    const { lastPassword, newPassword } = req.body;
+
+    // Vérifier si les champs sont bien fournis
+    if (!lastPassword || !newPassword) {
+      return res.status(400).json({ message: "Veuillez remplir tous les champs." });
+    }
+
+    // Vérifier si l'utilisateur existe
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+
+    // Vérifier si l'ancien mot de passe est correct
+    const isMatch = await bcrypt.compare(lastPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Ancien mot de passe incorrect' });
+    }
+
+    // Hacher le nouveau mot de passe
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ message: 'Mot de passe mis à jour avec succès' });
+
+  } catch (error) {
+    console.error("❌ Erreur lors de la modification du mot de passe :", error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+
 module.exports = router;
