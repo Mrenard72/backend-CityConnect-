@@ -14,20 +14,14 @@ router.post('/create', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Destinataire ou événement manquant" });
     }
 
-    // Recherche d'une conversation existante pour cet événement contenant le user logué
+    // Recherche d'une conversation existante qui contient les deux participants
     let conversation = await Conversation.findOne({
       eventId,
-      participants: userId
+      participants: { $all: [userId, recipientId] }
     });
 
-    if (conversation) {
-      // Si la conversation existe mais que le recipient n'est pas encore présent, l'ajouter
-      if (!conversation.participants.includes(recipientId)) {
-        conversation.participants.push(recipientId);
-        await conversation.save();
-      }
-    } else {
-      // Sinon, créer une nouvelle conversation avec les deux participants
+    if (!conversation) {
+      // Créer une nouvelle conversation avec les deux participants
       conversation = new Conversation({ participants: [userId, recipientId], eventId });
       await conversation.save();
     }
