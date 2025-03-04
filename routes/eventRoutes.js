@@ -10,14 +10,20 @@ router.post('/', authMiddleware, async (req, res) => {
         console.log("🔍 Utilisateur connecté :", req.user);
 
         if (!req.user || !req.user._id) {
+            console.log("❌ Utilisateur non authentifié !");
             return res.status(401).json({ message: "Utilisateur non authentifié." });
         }
+
+        console.log("📥 Données reçues :", req.body);
 
         const { title, description, location, date, category, maxParticipants, photos } = req.body;
 
         if (!title || !description || !location || !date || !category || !maxParticipants) {
+            console.log("⚠️ Champs manquants !");
             return res.status(400).json({ message: "Tous les champs obligatoires doivent être remplis." });
         }
+
+        console.log("✅ Données validées, création de l'événement...");
 
         // Création de l'événement
         const newEvent = new Event({
@@ -27,12 +33,13 @@ router.post('/', authMiddleware, async (req, res) => {
             date,
             category,
             createdBy: req.user._id,
-            maxParticipants,
+            maxParticipants: parseInt(maxParticipants, 10),
             participants: [req.user._id], // Ajouter le créateur dans la liste des participants
             photos: photos || []
         });
 
         await newEvent.save();
+        console.log("🎉 Événement enregistré :", newEvent);
 
         // 🔹 Création de la conversation associée à l'événement
         const conversation = new Conversation({
@@ -41,11 +48,13 @@ router.post('/', authMiddleware, async (req, res) => {
         });
 
         await conversation.save();
+        console.log("💬 Conversation créée :", conversation);
 
         // Mise à jour de l'événement avec l'ID de la conversation
         newEvent.conversationId = conversation._id;
         await newEvent.save();
 
+        console.log("🚀 Événement et conversation liés !");
         res.status(201).json({ message: 'Événement créé avec succès !', event: newEvent, conversation });
 
     } catch (error) {
@@ -53,6 +62,7 @@ router.post('/', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Erreur lors de la création de l’événement', error });
     }
 });
+
 
 // ✅ 2. Récupérer tous les événements
 router.get('/', async (req, res) => {

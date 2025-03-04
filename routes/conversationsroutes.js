@@ -121,7 +121,7 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
       .populate('participants', 'username _id')
       .populate({
         path: 'messages.sender',
-        select: 'username _id' // 👈 Ajoute ceci pour bien récupérer `username`
+        select: 'username _id' // Sélectionner uniquement le nom d'utilisateur et l'ID
       })
       .populate('eventId', 'title');
 
