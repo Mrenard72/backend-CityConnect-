@@ -166,7 +166,7 @@ router.put('/change-password', authMiddleware, async (req, res) => {
 
     // Mise à jour du mot de passe dans la base de données
     user.password = hashedPassword;
-    await user.save();
+    await user.password.save();
 
     console.log("✅ Mot de passe mis à jour en base de données.");
 
