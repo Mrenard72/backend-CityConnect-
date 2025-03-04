@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
+const Event = require('../models/Event'); // Ajout pour filtrer via l'événement
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -83,15 +84,25 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
   }
 });
 
-// Récupérer les conversations d'un utilisateur
+// Récupérer les conversations d'un utilisateur avec possibilité de filtrer par catégorie d'événement
 router.get('/my-conversations', authMiddleware, async (req, res) => {
   try {
     const userId = req.user._id;
-    const conversations = await Conversation.find({ participants: userId })
+    const query = { participants: userId };
+
+    // Si un filtre par catégorie est fourni, récupérer les IDs des événements correspondants
+    if (req.query.category) {
+      const events = await Event.find({
+        category: { $regex: new RegExp(`^${req.query.category}$`, 'i') }
+      }).select('_id');
+      const eventIds = events.map(e => e._id);
+      query.eventId = { $in: eventIds };
+    }
+
+    const conversations = await Conversation.find(query)
       .populate('participants', 'username email')
       .populate('messages.sender', 'username')
-      .populate('eventId', 'title');
-
+      .populate('eventId', 'title category');
     res.json(conversations);
   } catch (error) {
     console.error("Erreur récupération conversations:", error.stack);
@@ -108,10 +119,7 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
 
     const conversation = await Conversation.findById(conversationId)
       .populate('participants', 'username _id')
-      .populate({
-        path: 'messages.sender',
-        select: 'username _id'
-      })
+      .populate('messages.sender', 'username _id')
       .populate('eventId', 'title');
 
     if (!conversation) {
