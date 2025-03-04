@@ -10,24 +10,32 @@ router.post('/create', authMiddleware, async (req, res) => {
   try {
     const userId = req.user._id; // Utiliser req.user._id
     let { recipientId, eventId } = req.body;
+    console.log("Création de conversation - données reçues:", { userId, recipientId, eventId });
 
     if (!recipientId || !eventId) {
       return res.status(400).json({ message: "Destinataire ou événement manquant" });
     }
     
-    // Convertir recipientId en ObjectId (si ce n'est pas déjà le cas)
-    recipientId = mongoose.Types.ObjectId(recipientId);
+    // Convertir recipientId en ObjectId si nécessaire
+    try {
+      recipientId = mongoose.Types.ObjectId(recipientId);
+    } catch (e) {
+      return res.status(400).json({ message: "recipientId invalide" });
+    }
 
     // Recherche d'une conversation existante qui contient les deux participants
     let conversation = await Conversation.findOne({
       eventId,
       participants: { $all: [userId, recipientId] }
     });
-
+    
     if (!conversation) {
       // Créer une nouvelle conversation avec les deux participants
       conversation = new Conversation({ participants: [userId, recipientId], eventId });
       await conversation.save();
+      console.log("Nouvelle conversation créée :", conversation);
+    } else {
+      console.log("Conversation existante trouvée :", conversation);
     }
 
     res.status(201).json(conversation);
@@ -90,7 +98,7 @@ router.get('/my-conversations', authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
   }
 });
-
+  
 // Récupérer une conversation spécifique par son ID
 router.get('/:conversationId', authMiddleware, async (req, res) => {
   try {
