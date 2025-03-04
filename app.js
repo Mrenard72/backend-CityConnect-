@@ -23,14 +23,13 @@ const authRoutes = require('./routes/auth');
 const eventsRouter = require('./routes/eventRoutes');
 const conversationsRouter = require('./routes/conversationsroutes');
 const userRouter = require('./routes/users');
-const restaurantRouter = require('./routes/restaurantroutes');
+
 
 app.use('/auth', authRoutes); // Routes d'authentification
 app.use('/events', eventsRouter); // Routes sorties
 app.use('/conversations', conversationsRouter); // Routes messagerie
 app.use('/users', userRouter); // routes users ()
-app.use('/api', restaurantRouter);
-console.log("✅ Routes restaurants chargées !");
+
 
 
 app.get('/', (req, res) => {
