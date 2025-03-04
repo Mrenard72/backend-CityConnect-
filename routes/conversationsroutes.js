@@ -1,11 +1,10 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// Créer une nouvelle conversation
+// Créer une nouvelle conversation (mise à jour pour forcer l'ajout des deux participants)
 router.post('/create', authMiddleware, async (req, res) => {
   try {
     const userId = req.user._id; // Utiliser req.user._id
@@ -15,12 +14,20 @@ router.post('/create', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Destinataire ou événement manquant" });
     }
 
+    // Recherche d'une conversation existante qui contient déjà le user logué
     let conversation = await Conversation.findOne({
-      participants: { $all: [userId, recipientId] },
-      eventId
+      eventId,
+      participants: userId  // Rechercher toute conversation pour cet événement contenant le user logué
     });
 
-    if (!conversation) {
+    if (conversation) {
+      // Si la conversation existe mais que le recipient n'est pas encore présent, l'ajouter
+      if (!conversation.participants.includes(recipientId)) {
+        conversation.participants.push(recipientId);
+        await conversation.save();
+      }
+    } else {
+      // Sinon, créer une nouvelle conversation avec les deux participants
       conversation = new Conversation({ participants: [userId, recipientId], eventId });
       await conversation.save();
     }
@@ -53,7 +60,6 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
     };
     const options = { new: true };
 
-    // findByIdAndUpdate renvoie le document mis à jour
     const updatedConversation = await Conversation.findByIdAndUpdate(conversationId, update, options)
       .populate('messages.sender', 'username');
 
@@ -67,11 +73,7 @@ router.post('/:conversationId/message', authMiddleware, async (req, res) => {
     res.json(addedMessage);
   } catch (error) {
     console.error("❌ Erreur envoi message:", error.stack);
-    res.status(500).json({ 
-      message: "Erreur serveur", 
-      error: error.message, 
-      stack: error.stack 
-    });
+    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
   }
 });
 
@@ -87,11 +89,7 @@ router.get('/my-conversations', authMiddleware, async (req, res) => {
     res.json(conversations);
   } catch (error) {
     console.error("Erreur récupération conversations:", error.stack);
-    res.status(500).json({ 
-      message: "Erreur serveur", 
-      error: error.message, 
-      stack: error.stack 
-    });
+    res.status(500).json({ message: "Erreur serveur", error: error.message, stack: error.stack });
   }
 });
   
