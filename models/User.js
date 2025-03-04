@@ -20,13 +20,13 @@ const UserSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-// //  Hashage du mot de passe avant sauvegarde
-// UserSchema.pre('save', async function(next) {
-//   if (!this.isModified('password') || this.password.startsWith('$2a$')) return next();
-//   const salt = await bcrypt.genSalt(10);
-//   this.password = await bcrypt.hash(this.password, salt);
-//   next();
-// });
+//  Hashage du mot de passe avant sauvegarde
+UserSchema.pre('save', async function(next) {
+  if (!this.isModified('password') || this.password.startsWith('$2a$')) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
 
 
 // Calculer la note moyenne reçue par un utilisateur
