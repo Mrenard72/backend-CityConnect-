@@ -169,16 +169,38 @@ router.put('/change-password', authMiddleware, async (req, res) => {
       }
       console.log("✅ Mot de passe mis à jour en base de données.");
       res.json({ message: 'Mot de passe mis à jour avec succès' });
-    // Mise à jour du mot de passe dans la base de données
-    // user.password = hashedPassword;
-    // await user.save();
-
+  
   } catch (error) {
     console.error("❌ Erreur lors de la modification du mot de passe :", error);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
+
+router.post('/google-login', async (req, res) => {
+  try {
+    const { token } = req.body;
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: "ZZZZZ.apps.googleusercontent.com",
+    });
+
+    const { email, name, picture, sub } = ticket.getPayload();
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = new User({ username: name, email, photo: picture });
+      await user.save();
+    }
+
+    const authToken = generateToken(user._id);
+    res.json({ token: authToken, userId: user._id, username: user.username, photo: user.photo });
+
+  } catch (error) {
+    console.error("Erreur de connexion Google :", error);
+    res.status(500).json({ message: "Erreur d'authentification avec Google" });
+  }
+});
 
 
 module.exports = router;
