@@ -10,7 +10,7 @@ const axios = require("axios");
 // ✅ Vérifier que JWT_SECRET est bien défini !
 console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
 
-// ✅ Fonction pour générer un token JWT
+// ✅ Fonction pour générer un token JWT !
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '360d' });
 };
@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Adresse email invalide' });
     }
 
-    // ✅ Vérifier si l'utilisateur existe déjà
+    // ✅ Vérifier si l'utilisateur existe déjà !
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'Email déjà utilisé' });
 
