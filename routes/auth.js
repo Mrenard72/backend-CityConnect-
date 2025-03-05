@@ -7,7 +7,7 @@ const Event = require('../models/Event');
 const axios = require("axios");
 
 
-// ✅ Vérifier que JWT_SECRET est bien défini
+// ✅ Vérifier que JWT_SECRET est bien défini !
 console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
 
 // ✅ Fonction pour générer un token JWT
