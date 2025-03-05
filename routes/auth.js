@@ -3,6 +3,8 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Event = require('../models/Event');
+
 
 // ✅ Vérifier que JWT_SECRET est bien défini
 console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
@@ -91,12 +93,19 @@ router.get('/profile', authMiddleware, async (req, res) => {
     const user = await User.findById(req.user.userId).select('-password');
     if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
-    res.json(user);
+    res.json({
+      _id: user._id,  // 🔥 Assure-toi que l'ID est bien renvoyé ici
+      username: user.username,
+      photo: user.photo,
+      email: user.email,
+      averageRating: user.averageRating
+    });
   } catch (error) {
     console.error("❌ Erreur lors de la récupération du profil :", error);
     res.status(500).json({ message: 'Erreur serveur', error });
   }
 });
+
 
 // ✅ Route pour mettre à jour son profil
 router.put('/profile', authMiddleware, async (req, res) => {
@@ -169,16 +178,84 @@ router.put('/change-password', authMiddleware, async (req, res) => {
       }
       console.log("✅ Mot de passe mis à jour en base de données.");
       res.json({ message: 'Mot de passe mis à jour avec succès' });
-    // Mise à jour du mot de passe dans la base de données
-    // user.password = hashedPassword;
-    // await user.save();
-
+  
   } catch (error) {
     console.error("❌ Erreur lors de la modification du mot de passe :", error);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
+// ✅ Route pour se connecter avec Google
+router.post('/google-login', async (req, res) => {
+  try {
+    const { token } = req.body;
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: "ZZZZZ.apps.googleusercontent.com",
+    });
 
+    const { email, name, picture, sub } = ticket.getPayload();
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = new User({ username: name, email, photo: picture });
+      await user.save();
+    }
+
+    const authToken = generateToken(user._id);
+    res.json({ token: authToken, userId: user._id, username: user.username, photo: user.photo });
+
+  } catch (error) {
+    console.error("Erreur de connexion Google :", error);
+    res.status(500).json({ message: "Erreur d'authentification avec Google" });
+  }
+});
+
+// ✅ Route pour récupérer un utilisateur par son ID
+router.get('/:userId', async (req, res) => {
+  try {
+      const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities');
+      if (!user) {
+          return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
+      res.json(user);
+  } catch (error) {
+      console.error("❌ Erreur lors de la récupération de l'utilisateur:", error);
+      res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// ✅ Route pour récupérer les activités créées par un utilisateur
+router.get('/:userId/activities', async (req, res) => {
+  try {
+      const activities = await Event.find({ createdBy: req.params.userId });
+      res.json(activities);
+  } catch (error) {
+      console.error("❌ Erreur lors de la récupération des activités:", error);
+      res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// ✅ Route pour noter un utilisateur
+router.post('/:userId/rate', authMiddleware, async (req, res) => {
+  try {
+      const { rating } = req.body;
+      if (!rating || rating < 1 || rating > 5) {
+          return res.status(400).json({ message: 'La note doit être entre 1 et 5' });
+      }
+
+      const user = await User.findById(req.params.userId);
+      if (!user) {
+          return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
+
+      user.reviewsReceived.push({ reviewerId: req.user.userId, rating });
+      await user.save();
+      res.json({ message: 'Note enregistrée avec succès' });
+  } catch (error) {
+      console.error("❌ Erreur lors de la notation de l'utilisateur:", error);
+      res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
 
 module.exports = router;
