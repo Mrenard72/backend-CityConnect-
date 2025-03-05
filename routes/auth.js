@@ -4,7 +4,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Event = require('../models/Event');
-const authMiddleware = require('../middleware/auth');
+
 
 // ✅ Vérifier que JWT_SECRET est bien défini
 console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
