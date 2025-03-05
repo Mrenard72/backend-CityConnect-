@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const cloudinary = require('cloudinary').v2;
 const authMiddleware = require('../middleware/auth');
+const Event = require('../models/Event'); // Modèle pour récupérer les activités créées par l'utilisateur
 
 const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
 
@@ -84,6 +85,34 @@ router.put('/profile', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error("❌ Erreur lors de la mise à jour du profil :", error);
         res.status(500).json({ message: 'Erreur serveur', error });
+    }
+});
+
+// ✅ Route pour récupérer le profil utilisateur par son ID
+router.get('/:userId', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities');
+        if (!user) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+        res.json(user);
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération du profil :", error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// ✅ Route pour récupérer les activités créées par un utilisateur
+router.get('/:userId/activities', async (req, res) => {
+    try {
+        const activities = await Event.find({ createdBy: req.params.userId });
+        if (!activities.length) {
+            return res.status(404).json({ message: "Aucune activité trouvée pour cet utilisateur." });
+        }
+        res.json(activities);
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des activités :", error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
 });
 
