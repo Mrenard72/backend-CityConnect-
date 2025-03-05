@@ -186,8 +186,14 @@ router.put('/change-password', authMiddleware, async (req, res) => {
 });
 
 // ✅ Route pour se connecter avec Google
-router.post('/google-login', async (req, res) => {
+router.post('/auth/google-login', async (req, res) => {
   try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ message: "Token Google manquant" });
+    }
+
     // Vérifier l'authenticité du token avec Google
     const googleResponse = await axios.get(
       `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${idToken}`
