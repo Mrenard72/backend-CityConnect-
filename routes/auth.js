@@ -108,25 +108,24 @@ router.get('/profile', authMiddleware, async (req, res) => {
 
 
 // ✅ Route pour mettre à jour son profil
-router.put('/profile', authMiddleware, async (req, res) => {
+router.get('/profile', authMiddleware, async (req, res) => {
   try {
-    const { username, photo } = req.body;
-
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.user.userId).select('-password');
     if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
-    if (username) user.username = username;
-    if (photo) user.photo = photo;
-
-    await user.save();
-
-    res.json({ message: 'Profil mis à jour avec succès', user });
-
+    res.json({
+      _id: user._id,  // 🔥 Assure-toi que _id est bien renvoyé ici
+      username: user.username,
+      photo: user.photo,
+      email: user.email,
+      averageRating: user.averageRating
+    });
   } catch (error) {
-    console.error("❌ Erreur lors de la mise à jour du profil :", error);
+    console.error("❌ Erreur lors de la récupération du profil :", error);
     res.status(500).json({ message: 'Erreur serveur', error });
   }
 });
+
 
 // ✅ Route pour se déconnecter (optionnel)
 router.post('/logout', authMiddleware, (req, res) => {
