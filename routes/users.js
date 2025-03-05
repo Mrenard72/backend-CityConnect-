@@ -91,7 +91,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
 // ✅ Route pour récupérer le profil utilisateur par son ID
 router.get('/:userId', async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities');
+        const user = await User.findById(req.params.userId).select('username photo averageRating proposedActivities');
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
