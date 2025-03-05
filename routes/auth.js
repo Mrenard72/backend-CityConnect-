@@ -93,12 +93,19 @@ router.get('/profile', authMiddleware, async (req, res) => {
     const user = await User.findById(req.user.userId).select('-password');
     if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
-    res.json(user);
+    res.json({
+      _id: user._id,  // 🔥 Assure-toi que l'ID est bien renvoyé ici
+      username: user.username,
+      photo: user.photo,
+      email: user.email,
+      averageRating: user.averageRating
+    });
   } catch (error) {
     console.error("❌ Erreur lors de la récupération du profil :", error);
     res.status(500).json({ message: 'Erreur serveur', error });
   }
 });
+
 
 // ✅ Route pour mettre à jour son profil
 router.put('/profile', authMiddleware, async (req, res) => {
