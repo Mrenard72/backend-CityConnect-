@@ -3,6 +3,8 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Event = require('../models/Event');
+const authMiddleware = require('../middleware/auth');
 
 // ✅ Vérifier que JWT_SECRET est bien défini
 console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
@@ -176,7 +178,7 @@ router.put('/change-password', authMiddleware, async (req, res) => {
   }
 });
 
-
+// ✅ Route pour se connecter avec Google
 router.post('/google-login', async (req, res) => {
   try {
     const { token } = req.body;
@@ -202,5 +204,51 @@ router.post('/google-login', async (req, res) => {
   }
 });
 
+// ✅ Route pour récupérer un utilisateur par son ID
+router.get('/:userId', async (req, res) => {
+  try {
+      const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities');
+      if (!user) {
+          return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
+      res.json(user);
+  } catch (error) {
+      console.error("❌ Erreur lors de la récupération de l'utilisateur:", error);
+      res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// ✅ Route pour récupérer les activités créées par un utilisateur
+router.get('/:userId/activities', async (req, res) => {
+  try {
+      const activities = await Event.find({ createdBy: req.params.userId });
+      res.json(activities);
+  } catch (error) {
+      console.error("❌ Erreur lors de la récupération des activités:", error);
+      res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// ✅ Route pour noter un utilisateur
+router.post('/:userId/rate', authMiddleware, async (req, res) => {
+  try {
+      const { rating } = req.body;
+      if (!rating || rating < 1 || rating > 5) {
+          return res.status(400).json({ message: 'La note doit être entre 1 et 5' });
+      }
+
+      const user = await User.findById(req.params.userId);
+      if (!user) {
+          return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
+
+      user.reviewsReceived.push({ reviewerId: req.user.userId, rating });
+      await user.save();
+      res.json({ message: 'Note enregistrée avec succès' });
+  } catch (error) {
+      console.error("❌ Erreur lors de la notation de l'utilisateur:", error);
+      res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
 
 module.exports = router;
