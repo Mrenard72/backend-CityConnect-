@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const axios = require("axios");
 
 // ✅ Vérifier que JWT_SECRET est bien défini
 console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
@@ -177,30 +178,45 @@ router.put('/change-password', authMiddleware, async (req, res) => {
 });
 
 
-router.post('/google-login', async (req, res) => {
+// ✅ Route pour l'authentification Google
+router.post("/auth/google", async (req, res) => {
+  const { idToken } = req.body;
+
   try {
-    const { token } = req.body;
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: "ZZZZZ.apps.googleusercontent.com",
-    });
+    // Vérifier l'authenticité du token avec Google
+    const googleResponse = await axios.get(
+      `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${idToken}`
+    );
 
-    const { email, name, picture, sub } = ticket.getPayload();
+    const { email, name, picture, sub: googleId } = googleResponse.data;
 
+    // Vérifier si l'utilisateur existe déjà
     let user = await User.findOne({ email });
+
     if (!user) {
-      user = new User({ username: name, email, photo: picture });
+      // Générer un mot de passe aléatoire hashé pour l'utilisateur
+      const randomPassword = await bcrypt.hash(googleId, 10);
+
+      user = new User({
+        username: name || email.split("@")[0], // Utilise le nom Google ou l'email
+        email,
+        password: randomPassword, // Mot de passe caché
+        photo: picture,
+      });
+
       await user.save();
     }
 
-    const authToken = generateToken(user._id);
-    res.json({ token: authToken, userId: user._id, username: user.username, photo: user.photo });
+    // Générer un token JWT pour l'authentification
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
+    res.json({ token, user });
   } catch (error) {
-    console.error("Erreur de connexion Google :", error);
-    res.status(500).json({ message: "Erreur d'authentification avec Google" });
+    console.error("Erreur d'authentification Google :", error);
+    res.status(401).json({ message: "Échec de l'authentification" });
   }
 });
-
 
 module.exports = router;
