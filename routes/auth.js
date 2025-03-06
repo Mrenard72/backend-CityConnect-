@@ -233,7 +233,7 @@ router.post('/auth/google-login', async (req, res) => {
 // ✅ Route pour récupérer un utilisateur par son ID
 router.get('/:userId', async (req, res) => {
   try {
-      const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities');
+      const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities bio');
       if (!user) {
           return res.status(404).json({ message: 'Utilisateur non trouvé' });
       }

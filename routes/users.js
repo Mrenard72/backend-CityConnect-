@@ -30,7 +30,7 @@ const deleteOldPhoto = async (photoUrl) => {
 // Route pour récupérer le profil utilisateur !
 router.get('/profile', authMiddleware, async (req, res) => {
     try {
-        const user = await User.findById(req.user._id).select('username email photo reviewsReceived proposedActivities');
+        const user = await User.findById(req.user._id).select('username email photo reviewsReceived proposedActivities bio');
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
@@ -41,6 +41,8 @@ router.get('/profile', authMiddleware, async (req, res) => {
             photo: user.photo,
             reviewsReceived: user.reviewsReceived,
             proposedActivities: user.proposedActivities,
+            bio: user.bio
+
         });
     } catch (error) {
         console.error("❌ Erreur lors de la récupération du profil :", error);
@@ -94,7 +96,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
 router.get('/:userId', async (req, res) => {
     try {
         const user = await User.findById(req.params.userId)
-            .select('username photo proposedActivities reviewsReceived') // ✅ Inclure `reviewsReceived`
+            .select('username photo proposedActivities reviewsReceived bio') // ✅ Inclure `reviewsReceived`
             .lean();
 
         if (!user) {
@@ -133,6 +135,31 @@ router.get('/:userId/activities', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
+
+// ✅ Route pour changer la bio de l'utilisateur
+
+router.put('/update-bio', authMiddleware, async (req, res) => {
+    try {
+        const { bio } = req.body;
+        if (!bio || typeof bio !== 'string') {
+            return res.status(400).json({ message: "La bio est invalide." });
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: "Utilisateur non trouvé" });
+        }
+
+        user.bio = bio;
+        await user.save();
+
+        res.json({ message: "Bio mise à jour avec succès", bio: user.bio });
+    } catch (error) {
+        console.error("❌ Erreur lors de la mise à jour de la bio :", error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
 
 
 module.exports = router;
