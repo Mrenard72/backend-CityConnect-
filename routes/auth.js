@@ -258,25 +258,28 @@ router.get('/:userId/activities', async (req, res) => {
 // ✅ Route pour noter un utilisateur
 router.post('/:userId/rate', authMiddleware, async (req, res) => {
   try {
-      const { rating } = req.body;
-      if (!rating || rating < 1 || rating > 5) {
-          return res.status(400).json({ message: 'La note doit être entre 1 et 5' });
-      }
+    const { rating } = req.body;
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'La note doit être entre 1 et 5' });
+    }
 
-      const user = await User.findById(req.params.userId);
-      if (!user) {
-          return res.status(404).json({ message: 'Utilisateur non trouvé' });
-      }
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
 
-      user.reviewsReceived.push({ reviewerId: req.user.userId, rating });
-      await user.populate('reviewsReceived');
-      await user.save();
-      res.json({ message: 'Note enregistrée avec succès' });
+    user.reviewsReceived.push({ reviewerId: req.user.userId, rating });
+
+    await user.save();
+    console.log("✅ Notes après sauvegarde :", user.reviewsReceived); // 🔍 Vérification
+
+    res.json({ message: 'Note enregistrée avec succès' });
   } catch (error) {
-      console.error("❌ Erreur lors de la notation de l'utilisateur:", error);
-      res.status(500).json({ message: 'Erreur serveur' });
+    console.error("❌ Erreur lors de la notation de l'utilisateur:", error);
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
 
 
 module.exports = router;

@@ -93,16 +93,21 @@ router.put('/profile', authMiddleware, async (req, res) => {
 // ✅ Route pour récupérer le profil utilisateur par son ID
 router.get('/:userId', async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId).select('username photo averageRating proposedActivities');
-        if (!user) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        }
-        res.json(user.toObject({ virtuals: true }));
+      const user = await User.findById(req.params.userId).select('username photo averageRating proposedActivities').lean();
+      
+      if (!user) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
+  
+      console.log("✅ Données envoyées au frontend :", user); // 🔍 Vérification
+  
+      res.json(user);
     } catch (error) {
-        console.error("❌ Erreur lors de la récupération du profil :", error);
-        res.status(500).json({ message: 'Erreur serveur' });
+      console.error("❌ Erreur lors de la récupération du profil :", error);
+      res.status(500).json({ message: 'Erreur serveur' });
     }
-});
+  });
+  
 
 // ✅ Route pour récupérer les activités créées par un utilisateur
 router.get('/:userId/activities', async (req, res) => {
