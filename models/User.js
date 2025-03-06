@@ -20,6 +20,9 @@ const UserSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
+UserSchema.set('toJSON', { virtuals: true });
+UserSchema.set('toObject', { virtuals: true });
+
 //  Hashage du mot de passe avant sauvegarde
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password') || this.password.startsWith('$2a$')) return next();
