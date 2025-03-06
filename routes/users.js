@@ -95,7 +95,7 @@ router.get('/:userId', async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
-        res.json(user);
+        res.json(user.toObject({ virtuals: true }));
     } catch (error) {
         console.error("❌ Erreur lors de la récupération du profil :", error);
         res.status(500).json({ message: 'Erreur serveur' });
