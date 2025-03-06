@@ -48,15 +48,15 @@ router.post('/register', async (req, res) => {
 // ✅ Route de connexion
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     // ✅ Vérifier si l'utilisateur existe
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Email ou mot de passe incorrect' });
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ message: 'Username ou mot de passe incorrect' });
 
     // ✅ Vérifier le mot de passe
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Email ou mot de passe incorrect' });
+    if (!isMatch) return res.status(400).json({ message: 'Username ou mot de passe incorrect' });
 
     // ✅ Générer un token
     const token = generateToken(user._id);
