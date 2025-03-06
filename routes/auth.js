@@ -190,7 +190,7 @@ router.post('/auth/google-login', async (req, res) => {
       await user.save();
     }
 
-    // Générer un token JWT pour l'authentification
+    // Générer un token JWT pour l'authentification !
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
