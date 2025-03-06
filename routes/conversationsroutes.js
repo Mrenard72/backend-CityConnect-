@@ -139,5 +139,26 @@ router.get('/:conversationId', authMiddleware, async (req, res) => {
   }
 });
 
+// route supprimer conversation 
+
+router.delete('/:conversationId', authMiddleware, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+
+    // Vérifie si la conversation existe
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation introuvable" });
+    }
+
+    // Supprime la conversation
+    await Conversation.findByIdAndDelete(conversationId);
+
+    res.status(200).json({ message: "Conversation supprimée avec succès" });
+  } catch (error) {
+    console.error("Erreur lors de la suppression de la conversation :", error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
 
 module.exports = router;
