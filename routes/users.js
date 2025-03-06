@@ -27,29 +27,6 @@ const deleteOldPhoto = async (photoUrl) => {
     }
 };
 
-// Route pour récupérer le profil utilisateur !
-router.get('/profile', authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id).select('username email photo reviewsReceived proposedActivities bio');
-        if (!user) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        }
-
-        res.json({
-            username: user.username,
-            email: user.email,
-            photo: user.photo,
-            reviewsReceived: user.reviewsReceived,
-            proposedActivities: user.proposedActivities,
-            bio: user.bio
-
-        });
-    } catch (error) {
-        console.error("❌ Erreur lors de la récupération du profil :", error);
-        res.status(500).json({ message: 'Erreur serveur', error });
-    }
-});
-
 // Route pour mettre à jour la photo de profil
 router.post('/upload-profile-pic', authMiddleware, async (req, res) => {
     try {

@@ -108,35 +108,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 });
 
 
-// ✅ Route pour mettre à jour son profil
-router.get('/profile', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select('-password');
-    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
-    res.json({
-      _id: user._id,  // 🔥 Assure-toi que _id est bien renvoyé ici
-      username: user.username,
-      photo: user.photo,
-      email: user.email,
-      averageRating: user.averageRating
-    });
-  } catch (error) {
-    console.error("❌ Erreur lors de la récupération du profil :", error);
-    res.status(500).json({ message: 'Erreur serveur', error });
-  }
-});
-
-
-// ✅ Route pour se déconnecter (optionnel) !
-router.post('/logout', authMiddleware, (req, res) => {
-  try {
-    res.json({ message: 'Déconnexion réussie' });
-  } catch (error) {
-    console.error("❌ Erreur lors de la déconnexion :", error);
-    res.status(500).json({ message: 'Erreur serveur', error });
-  }
-});
 
 // ✅ Route pour changer le mot de passe
 router.put('/change-password', authMiddleware, async (req, res) => {
