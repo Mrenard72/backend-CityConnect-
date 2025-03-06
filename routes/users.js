@@ -30,7 +30,7 @@ const deleteOldPhoto = async (photoUrl) => {
 // Route pour récupérer le profil utilisateur !
 router.get('/profile', authMiddleware, async (req, res) => {
     try {
-        const user = await User.findById(req.user._id).select('username email photo');
+        const user = await User.findById(req.user._id).select('username email photo reviewsReceived proposedActivities');
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
@@ -38,7 +38,9 @@ router.get('/profile', authMiddleware, async (req, res) => {
         res.json({
             username: user.username,
             email: user.email,
-            photo: user.photo
+            photo: user.photo,
+            reviewsReceived: user.reviewsReceived,
+            proposedActivities: user.proposedActivities,
         });
     } catch (error) {
         console.error("❌ Erreur lors de la récupération du profil :", error);
