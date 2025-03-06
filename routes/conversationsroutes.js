@@ -102,7 +102,8 @@ router.get('/my-conversations', authMiddleware, async (req, res) => {
     const conversations = await Conversation.find(query)
       .populate('participants', 'username email')
       .populate('messages.sender', 'username')
-      .populate('eventId', 'title category');
+      .populate('eventId', 'title category image imageUrl photos')
+
     res.json(conversations);
   } catch (error) {
     console.error("Erreur récupération conversations:", error.stack);
