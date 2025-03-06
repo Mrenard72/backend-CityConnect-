@@ -269,6 +269,7 @@ router.post('/:userId/rate', authMiddleware, async (req, res) => {
       }
 
       user.reviewsReceived.push({ reviewerId: req.user.userId, rating });
+      await user.populate('reviewsReceived');
       await user.save();
       res.json({ message: 'Note enregistrée avec succès' });
   } catch (error) {
