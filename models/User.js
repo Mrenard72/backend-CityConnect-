@@ -38,5 +38,6 @@ UserSchema.virtual('averageRating').get(function() {
   const sum = this.reviewsReceived.reduce((acc, review) => acc + review.rating, 0);
   return (sum / this.reviewsReceived.length).toFixed(1);
 });
+console.log(user.reviewsReceived);
 
 module.exports = mongoose.model('User', UserSchema);

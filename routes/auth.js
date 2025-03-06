@@ -278,4 +278,10 @@ router.post('/:userId/rate', authMiddleware, async (req, res) => {
   }
 });
 
+UserSchema.virtual('averageRating').get(function() {
+  if (!this.reviewsReceived || this.reviewsReceived.length === 0) return "Pas encore noté";
+  const sum = this.reviewsReceived.reduce((acc, review) => acc + review.rating, 0);
+  return (sum / this.reviewsReceived.length).toFixed(1);
+});
+console.log(user.reviewsReceived);
 module.exports = router;
