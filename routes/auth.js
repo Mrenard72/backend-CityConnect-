@@ -128,7 +128,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 });
 
 
-// ✅ Route pour se déconnecter (optionnel)
+// ✅ Route pour se déconnecter (optionnel) !
 router.post('/logout', authMiddleware, (req, res) => {
   try {
     res.json({ message: 'Déconnexion réussie' });
