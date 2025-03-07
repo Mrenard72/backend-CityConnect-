@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../app'); // Assurez-vous que votre fichier principal est bien app.js
+const app = require('../app');
 const jwt = require('jsonwebtoken');
 
 // Générer un token de test
