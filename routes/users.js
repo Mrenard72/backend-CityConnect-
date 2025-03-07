@@ -7,7 +7,7 @@ const Event = require('../models/Event'); // Modèle pour récupérer les activi
 
 const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
 
-// Configurer Cloudinary
+// Configurer Cloudinary !
 cloudinary.config({
     cloud_name: CLOUDINARY_CLOUD_NAME,
     api_key: CLOUDINARY_API_KEY,
@@ -26,25 +26,6 @@ const deleteOldPhoto = async (photoUrl) => {
         await cloudinary.uploader.destroy(publicId); // Supprime l'ancienne image
     }
 };
-
-// Route pour récupérer le profil utilisateur !
-router.get('/profile', authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id).select('username email photo');
-        if (!user) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        }
-
-        res.json({
-            username: user.username,
-            email: user.email,
-            photo: user.photo
-        });
-    } catch (error) {
-        console.error("❌ Erreur lors de la récupération du profil :", error);
-        res.status(500).json({ message: 'Erreur serveur', error });
-    }
-});
 
 // Route pour mettre à jour la photo de profil
 router.post('/upload-profile-pic', authMiddleware, async (req, res) => {
@@ -91,16 +72,32 @@ router.put('/profile', authMiddleware, async (req, res) => {
 // ✅ Route pour récupérer le profil utilisateur par son ID
 router.get('/:userId', async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities');
+        const user = await User.findById(req.params.userId)
+            .select('username photo proposedActivities reviewsReceived bio') // ✅ Inclure `reviewsReceived`
+            .lean();
+
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
+
+        // ✅ Calculer la note moyenne manuellement si elle n'est pas incluse via le virtual
+        if (user.reviewsReceived && user.reviewsReceived.length > 0) {
+            const sum = user.reviewsReceived.reduce((acc, review) => acc + review.rating, 0);
+            user.averageRating = (sum / user.reviewsReceived.length).toFixed(1);
+        } else {
+            user.averageRating = "Pas encore noté";
+        }
+
+        console.log("✅ Données envoyées au frontend :", user); // 🔍 Vérification
+
         res.json(user);
     } catch (error) {
         console.error("❌ Erreur lors de la récupération du profil :", error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
+
+  
 
 // ✅ Route pour récupérer les activités créées par un utilisateur
 router.get('/:userId/activities', async (req, res) => {
@@ -115,5 +112,31 @@ router.get('/:userId/activities', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
+
+// ✅ Route pour changer la bio de l'utilisateur
+
+router.put('/update-bio', authMiddleware, async (req, res) => {
+    try {
+        const { bio } = req.body;
+        if (!bio || typeof bio !== 'string') {
+            return res.status(400).json({ message: "La bio est invalide." });
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: "Utilisateur non trouvé" });
+        }
+
+        user.bio = bio;
+        await user.save();
+
+        res.json({ message: "Bio mise à jour avec succès", bio: user.bio });
+    } catch (error) {
+        console.error("❌ Erreur lors de la mise à jour de la bio :", error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
+
 
 module.exports = router;

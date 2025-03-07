@@ -4,12 +4,13 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Event = require('../models/Event');
+const axios = require("axios");
 
 
-// ✅ Vérifier que JWT_SECRET est bien défini
+// ✅ Vérifier que JWT_SECRET est bien défini !
 console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
 
-// ✅ Fonction pour générer un token JWT
+// ✅ Fonction pour générer un token JWT !
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '360d' });
 };
@@ -25,7 +26,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Adresse email invalide' });
     }
 
-    // ✅ Vérifier si l'utilisateur existe déjà
+    // ✅ Vérifier si l'utilisateur existe déjà !
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'Email déjà utilisé' });
 
@@ -47,15 +48,15 @@ router.post('/register', async (req, res) => {
 // ✅ Route de connexion
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     // ✅ Vérifier si l'utilisateur existe
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Email ou mot de passe incorrect' });
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ message: 'Username ou mot de passe incorrect' });
 
     // ✅ Vérifier le mot de passe
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Email ou mot de passe incorrect' });
+    if (!isMatch) return res.status(400).json({ message: 'Username ou mot de passe incorrect' });
 
     // ✅ Générer un token
     const token = generateToken(user._id);
@@ -107,35 +108,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 });
 
 
-// ✅ Route pour mettre à jour son profil
-router.get('/profile', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select('-password');
-    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
 
-    res.json({
-      _id: user._id,  // 🔥 Assure-toi que _id est bien renvoyé ici
-      username: user.username,
-      photo: user.photo,
-      email: user.email,
-      averageRating: user.averageRating
-    });
-  } catch (error) {
-    console.error("❌ Erreur lors de la récupération du profil :", error);
-    res.status(500).json({ message: 'Erreur serveur', error });
-  }
-});
-
-
-// ✅ Route pour se déconnecter (optionnel)
-router.post('/logout', authMiddleware, (req, res) => {
-  try {
-    res.json({ message: 'Déconnexion réussie' });
-  } catch (error) {
-    console.error("❌ Erreur lors de la déconnexion :", error);
-    res.status(500).json({ message: 'Erreur serveur', error });
-  }
-});
 
 // ✅ Route pour changer le mot de passe
 router.put('/change-password', authMiddleware, async (req, res) => {
@@ -185,35 +158,54 @@ router.put('/change-password', authMiddleware, async (req, res) => {
 });
 
 // ✅ Route pour se connecter avec Google
-router.post('/google-login', async (req, res) => {
+router.post('/auth/google-login', async (req, res) => {
   try {
-    const { token } = req.body;
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: "ZZZZZ.apps.googleusercontent.com",
-    });
+    const { idToken } = req.body;
 
-    const { email, name, picture, sub } = ticket.getPayload();
+    if (!idToken) {
+      return res.status(400).json({ message: "Token Google manquant" });
+    }
 
+    // Vérifier l'authenticité du token avec Google
+    const googleResponse = await axios.get(
+      `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${idToken}`
+    );
+
+    const { email, name, picture, sub: googleId } = googleResponse.data;
+
+    // Vérifier si l'utilisateur existe déjà
     let user = await User.findOne({ email });
+
     if (!user) {
-      user = new User({ username: name, email, photo: picture });
+      // Générer un mot de passe aléatoire hashé pour l'utilisateur
+      const randomPassword = await bcrypt.hash(googleId, 10);
+
+      user = new User({
+        username: name || email.split("@")[0], // Utilise le nom Google ou l'email
+        email,
+        password: randomPassword, // Mot de passe caché
+        photo: picture,
+      });
+
       await user.save();
     }
 
-    const authToken = generateToken(user._id);
-    res.json({ token: authToken, userId: user._id, username: user.username, photo: user.photo });
+    // Générer un token JWT pour l'authentification !
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
+    res.json({ token, user });
   } catch (error) {
-    console.error("Erreur de connexion Google :", error);
-    res.status(500).json({ message: "Erreur d'authentification avec Google" });
+    console.error("Erreur d'authentification Google :", error);
+    res.status(401).json({ message: "Échec de l'authentification" });
   }
 });
 
 // ✅ Route pour récupérer un utilisateur par son ID
 router.get('/:userId', async (req, res) => {
   try {
-      const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities');
+      const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities bio');
       if (!user) {
           return res.status(404).json({ message: 'Utilisateur non trouvé' });
       }
@@ -238,23 +230,28 @@ router.get('/:userId/activities', async (req, res) => {
 // ✅ Route pour noter un utilisateur
 router.post('/:userId/rate', authMiddleware, async (req, res) => {
   try {
-      const { rating } = req.body;
-      if (!rating || rating < 1 || rating > 5) {
-          return res.status(400).json({ message: 'La note doit être entre 1 et 5' });
-      }
+    const { rating } = req.body;
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'La note doit être entre 1 et 5' });
+    }
 
-      const user = await User.findById(req.params.userId);
-      if (!user) {
-          return res.status(404).json({ message: 'Utilisateur non trouvé' });
-      }
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
 
-      user.reviewsReceived.push({ reviewerId: req.user.userId, rating });
-      await user.save();
-      res.json({ message: 'Note enregistrée avec succès' });
+    user.reviewsReceived.push({ reviewerId: req.user.userId, rating });
+
+    await user.save();
+    console.log("✅ Notes après sauvegarde :", user.reviewsReceived); // 🔍 Vérification
+
+    res.json({ message: 'Note enregistrée avec succès' });
   } catch (error) {
-      console.error("❌ Erreur lors de la notation de l'utilisateur:", error);
-      res.status(500).json({ message: 'Erreur serveur' });
+    console.error("❌ Erreur lors de la notation de l'utilisateur:", error);
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
+
 
 module.exports = router;

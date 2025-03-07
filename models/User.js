@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   token: { type: String }, // Stocke temporairement le token d’authentification
   photo: { type: String, default: "https://res.cloudinary.com/dasntwyhd/image/upload/v1712345678/default-avatar.jpg" }, // Photo de profil
+  bio: { type: String, default: "Bonjour, je suis nouveau sur CityConnect !" }, // Description de l'utilisateur
   
   reservedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }], // Activités réservées
   proposedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }], // Activités créées ok
@@ -19,6 +20,9 @@ const UserSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
+
+UserSchema.set('toJSON', { virtuals: true });
+UserSchema.set('toObject', { virtuals: true });
 
 //  Hashage du mot de passe avant sauvegarde
 UserSchema.pre('save', async function(next) {
