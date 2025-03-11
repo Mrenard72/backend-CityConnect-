@@ -198,6 +198,7 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
     }
 });
 
+// ✅ 8. Récupérer les participants d'un événement
 router.get('/:id/participants', authMiddleware, async (req, res) => {
     try {
         const event = await Event.findById(req.params.id).populate('participants', 'username');
