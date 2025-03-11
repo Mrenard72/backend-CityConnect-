@@ -110,16 +110,14 @@ router.get('/profile', authMiddleware, async (req, res) => {
 
 //===========================================================
 
-// ✅ Route pour changer le nom d'utilisateur
 router.put('/change-username', authMiddleware, async (req, res) => {
   try {
-    // Vérification des données reçues
     console.log("🔍 Données reçues:", req.body);
 
-    // Extraire les valeurs du body
-    const { lastUsername, newUsername } = req.body;
+    // Extraction complète des données nécessaires
+    const { lastUsername, newUsername, password } = req.body;
 
-    // Vérification que les champs sont bien fournis
+    // Vérification que tous les champs sont fournis
     if (!lastUsername || !newUsername || !password) {
       return res.status(400).json({ message: "Veuillez remplir tous les champs." });
     }
@@ -136,7 +134,6 @@ router.put('/change-username', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Mot de passe incorrect' });
     }
 
-    // Ajout de logs pour voir ce qui se passe
     console.log("✅ Mot de passe correct.");
 
     // Vérification du nouveau nom d'utilisateur
@@ -150,23 +147,27 @@ router.put('/change-username', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Nom d'utilisateur déjà utilisé" });
     }
 
-    // Ajout de logs pour voir ce qui se passe
     console.log("✅ Nouveau nom d'utilisateur correct.");
 
-    // Vérification du nouveau nom d'utilisateur
-    const updateresult = await user.update
-    ({ username: newUsername });
-    if (updateresult.modifiedCount === 0) {
-      return res.status(404).json({ message: 'Erreur serveur', error: "update failed" });
-      }
-      console.log("✅ Nom d'utilisateur mis à jour en base de données.");
-      res.json({ message: "Nom d'utilisateur mis à jour avec succès" });
+    // Mise à jour du nom d'utilisateur
+    const updateresult = await User.updateOne(
+      { _id: user._id },
+      { username: newUsername }
+    );
 
-      } catch (error) {
-        console.error("❌ Erreur lors de la modification du Nom d'utilisateur :", error);
-        res.status(500).json({ message: 'Erreur serveur' });
-      }
-    });
+    if (updateresult.modifiedCount === 0) {
+      return res.status(500).json({ message: 'Erreur serveur lors de la mise à jour.' });
+    }
+
+    console.log("✅ Nom d'utilisateur mis à jour en base de données.");
+    res.json({ message: "Nom d'utilisateur mis à jour avec succès" });
+
+  } catch (error) {
+    console.error("❌ Erreur lors de la modification du Nom d'utilisateur :", error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
 
     //===========================================================
 
