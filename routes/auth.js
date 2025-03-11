@@ -108,7 +108,67 @@ router.get('/profile', authMiddleware, async (req, res) => {
 });
 
 
+//===========================================================
 
+// ✅ Route pour changer le nom d'utilisateur
+router.put('/change-username', authMiddleware, async (req, res) => {
+  try {
+    // Vérification des données reçues
+    console.log("🔍 Données reçues:", req.body);
+
+    // Extraire les valeurs du body
+    const { lastUsername, newUsername } = req.body;
+
+    // Vérification que les champs sont bien fournis
+    if (!lastUsername || !newUsername || !password) {
+      return res.status(400).json({ message: "Veuillez remplir tous les champs." });
+    }
+
+    // Récupération de l'utilisateur depuis la base de données
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    // Vérification du mot de passe
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Mot de passe incorrect' });
+    }
+
+    // Ajout de logs pour voir ce qui se passe
+    console.log("✅ Mot de passe correct.");
+
+    // Vérification du nouveau nom d'utilisateur
+    if (newUsername === lastUsername) {
+      return res.status(400).json({ message: "Les noms d'utilisateur sont identiques" });
+    }
+
+    // Vérification de la disponibilité du nouveau nom d'utilisateur
+    const existing = await User.findOne({ username: newUsername });
+    if (existing) {
+      return res.status(400).json({ message: "Nom d'utilisateur déjà utilisé" });
+    }
+
+    // Ajout de logs pour voir ce qui se passe
+    console.log("✅ Nouveau nom d'utilisateur correct.");
+
+    // Vérification du nouveau nom d'utilisateur
+    const updateresult = await user.update
+    ({ username: newUsername });
+    if (updateresult.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Erreur serveur', error: "update failed" });
+      }
+      console.log("✅ Nom d'utilisateur mis à jour en base de données.");
+      res.json({ message: "Nom d'utilisateur mis à jour avec succès" });
+
+      } catch (error) {
+        console.error("❌ Erreur lors de la modification du Nom d'utilisateur :", error);
+        res.status(500).json({ message: 'Erreur serveur' });
+      }
+    });
+
+    //===========================================================
 
 // ✅ Route pour changer le mot de passe
 router.put('/change-password', authMiddleware, async (req, res) => {
@@ -156,6 +216,9 @@ router.put('/change-password', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
+
+//===============================================================
 
 // ✅ Route pour se connecter avec Google
 router.post('/auth/google-login', async (req, res) => {
