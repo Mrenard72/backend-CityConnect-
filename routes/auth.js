@@ -7,16 +7,21 @@ const Event = require('../models/Event');
 const axios = require("axios");
 const { set } = require('mongoose');
 
-
+//===============================================================
 // ✅ Vérifier que JWT_SECRET est bien défini !
+//===============================================================
 console.log("🚀 JWT_SECRET chargé :", process.env.JWT_SECRET);
 
+//===============================================================
 // ✅ Fonction pour générer un token JWT !
+//===============================================================
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '360d' });
 };
 
+//===============================================================
 // ✅ Route d'inscription !
+//===============================================================
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password, photo } = req.body;
@@ -46,7 +51,9 @@ router.post('/register', async (req, res) => {
   }
 });
 
+//===============================================================
 // ✅ Route de connexion
+//===============================================================
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -70,7 +77,9 @@ router.post('/login', async (req, res) => {
   }
 });
 
+//===============================================================
 // ✅ Middleware d'authentification
+//===============================================================
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -89,7 +98,9 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
+//===============================================================
 // ✅ Route pour récupérer le profil utilisateur !!
+//===============================================================
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
@@ -108,8 +119,56 @@ router.get('/profile', authMiddleware, async (req, res) => {
   }
 });
 
-//===========================================================
+//===============================================================
+// ✅ Route pour supprimer un utilisateur
+//===============================================================
+router.delete('/delete', authMiddleware, async (req, res) => {
+  try {
+    console.log("🔍 Données reçues:", req.body);
 
+    // Extraction des données nécessaires
+    const { username, email, password } = req.body;
+
+    // Vérification que tous les champs sont fournis
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "Veuillez remplir tous les champs." });
+    }
+
+    // Récupération de l'utilisateur depuis la base de données
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    // Vérification du nom d'utilisateur
+    if (username !== user.username) {
+      return res.status(400).json({ message: "Nom d'utilisateur incorrect" });
+    }
+
+    // Vérification de l'email
+    if (email !== user.email) {
+      return res.status(400).json({ message: "Email incorrect" });
+    }
+
+    // Vérification du mot de passe
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Mot de passe incorrect' });
+    }
+
+    // Suppression de l'utilisateur
+    await user.remove();
+    res.json({ message: 'Compte supprimé avec succès' });
+    
+  } catch (error) {
+    console.error("❌ Erreur lors de la suppression du compte :", error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+//===========================================================
+// Route pour modifier le nom d'utilisateur
+//===========================================================
 router.put('/change-username', authMiddleware, async (req, res) => {
   try {
     console.log("🔍 Données reçues:", req.body);
@@ -163,7 +222,6 @@ router.put('/change-username', authMiddleware, async (req, res) => {
       setTimeout(() => {
         window.location.reload('ProfileScreen');
       }, 1000);
-      username.save();
 
       } catch (error) {
         console.error("❌ Erreur lors de la modification du Nom d'utilisateur :", error);
@@ -171,12 +229,9 @@ router.put('/change-username', authMiddleware, async (req, res) => {
       }
     });
 
-
-
-
-    //===========================================================
-
+//===============================================================
 // ✅ Route pour changer le mot de passe
+//===============================================================
 router.put('/change-password', authMiddleware, async (req, res) => {
   try {
     // Vérification des données reçues
@@ -225,8 +280,8 @@ router.put('/change-password', authMiddleware, async (req, res) => {
 
 
 //===============================================================
-
 // ✅ Route pour se connecter avec Google
+//===============================================================
 router.post('/auth/google-login', async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -271,7 +326,9 @@ router.post('/auth/google-login', async (req, res) => {
   }
 });
 
+//===============================================================
 // ✅ Route pour récupérer un utilisateur par son ID
+//===============================================================
 router.get('/:userId', async (req, res) => {
   try {
       const user = await User.findById(req.params.userId).select('username photo averageRating bio proposedActivities bio');
@@ -285,7 +342,9 @@ router.get('/:userId', async (req, res) => {
   }
 });
 
+//===============================================================
 // ✅ Route pour récupérer les activités créées par un utilisateur
+//===============================================================
 router.get('/:userId/activities', async (req, res) => {
   try {
       const activities = await Event.find({ createdBy: req.params.userId });
@@ -296,7 +355,9 @@ router.get('/:userId/activities', async (req, res) => {
   }
 });
 
+//===============================================================
 // ✅ Route pour noter un utilisateur
+//===============================================================
 router.post('/:userId/rate', authMiddleware, async (req, res) => {
   try {
     const { rating } = req.body;
