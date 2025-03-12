@@ -124,42 +124,16 @@ router.get('/profile', authMiddleware, async (req, res) => {
 //===============================================================
 router.delete('/delete', authMiddleware, async (req, res) => {
   try {
-    console.log("🔍 Données reçues:", req.body);
+    const userId = req.user.userId; // ID de l'utilisateur extrait du token
 
-    // Extraction des données nécessaires
-    const { username, email, password } = req.body;
-
-    // Vérification que tous les champs sont fournis
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: "Veuillez remplir tous les champs." });
-    }
-
-    // Récupération de l'utilisateur depuis la base de données
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur non trouvé' });
     }
 
-    // Vérification du nom d'utilisateur
-    if (username !== user.username) {
-      return res.status(400).json({ message: "Nom d'utilisateur incorrect" });
-    }
-
-    // Vérification de l'email
-    if (email !== user.email) {
-      return res.status(400).json({ message: "Email incorrect" });
-    }
-
-    // Vérification du mot de passe
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Mot de passe incorrect' });
-    }
-
-    // Suppression de l'utilisateur
-    await user.remove();
+    await user.remove(); // Suppression de l'utilisateur
     res.json({ message: 'Compte supprimé avec succès' });
-    
+
   } catch (error) {
     console.error("❌ Erreur lors de la suppression du compte :", error);
     res.status(500).json({ message: 'Erreur serveur' });
