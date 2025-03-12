@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Event = require('../models/Event');
 const axios = require("axios");
+const { set } = require('mongoose');
 
 
 // ✅ Vérifier que JWT_SECRET est bien défini !
@@ -107,7 +108,6 @@ router.get('/profile', authMiddleware, async (req, res) => {
   }
 });
 
-
 //===========================================================
 
 // ✅ Route pour changer le nom d'utilisateur
@@ -117,7 +117,7 @@ router.put('/change-username', authMiddleware, async (req, res) => {
     console.log("🔍 Données reçues:", req.body);
 
     // Extraire les valeurs du body
-    const { lastUsername, newUsername } = req.body;
+    const { lastUsername, newUsername, password } = req.body;
 
     // Vérification que les champs sont bien fournis
     if (!lastUsername || !newUsername || !password) {
@@ -161,12 +161,19 @@ router.put('/change-username', authMiddleware, async (req, res) => {
       }
       console.log("✅ Nom d'utilisateur mis à jour en base de données.");
       res.json({ message: "Nom d'utilisateur mis à jour avec succès" });
+      setTimeout(() => {
+        window.location.reload('ProfileScreen');
+      }, 1000);
+      username.save();
 
       } catch (error) {
         console.error("❌ Erreur lors de la modification du Nom d'utilisateur :", error);
         res.status(500).json({ message: 'Erreur serveur' });
       }
     });
+
+
+
 
     //===========================================================
 
