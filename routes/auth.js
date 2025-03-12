@@ -16,7 +16,7 @@ const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '360d' });
 };
 
-// ✅ Route d'inscription
+// ✅ Route d'inscription !
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password, photo } = req.body;
