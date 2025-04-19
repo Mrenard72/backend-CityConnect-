@@ -8,9 +8,7 @@ const UserSchema = new mongoose.Schema({
   token: { type: String }, // Stocke temporairement le token d’authentification
   photo: { type: String, default: "https://res.cloudinary.com/dasntwyhd/image/upload/v1712345678/default-avatar.jpg" }, // Photo de profil
   bio: { type: String, default: "Bonjour, je suis nouveau sur CityConnect !" }, // Description de l'utilisateur
-  
-  reservedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }], // Activités réservées
-  proposedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }], // Activités créées ok
+
   
   reviewsReceived: [{
     reviewerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Qui a noté ?

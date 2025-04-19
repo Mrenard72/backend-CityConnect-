@@ -23,12 +23,14 @@ const authRoutes = require('./routes/auth');
 const eventsRouter = require('./routes/eventRoutes');
 const conversationsRouter = require('./routes/conversationsroutes');
 const userRouter = require('./routes/users');
+const uploadRouter = require('./routes/uploadRoutes');
 
 
 app.use('/auth', authRoutes); // Routes d'authentification
 app.use('/events', eventsRouter); // Routes sorties
 app.use('/conversations', conversationsRouter); // Routes messagerie
 app.use('/users', userRouter); // routes users ()
+app.use('/upload', uploadRouter);
 
 
 
